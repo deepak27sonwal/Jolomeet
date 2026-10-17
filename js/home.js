@@ -1,7 +1,7 @@
 // Homepage: interest picker. Selected interests are remembered locally and
 // sent with the match request by the chat and video pages.
 import { initApp, storage } from './app.js';
-import { fetchInterests, fetchOnlineCount } from './api.js';
+import { fetchInterests, fetchOnlineCount, getSession } from './api.js';
 import { STORAGE_KEYS } from './config.js';
 
 const MAX_INTERESTS = 10;
@@ -18,7 +18,17 @@ let selected = new Set(storage.get(STORAGE_KEYS.interests, []));
 
 initApp();
 loadInterests();
+hideGuestLinkIfSignedIn();
 showOnlineCount();
+
+/** "Try it as a guest" is only for people who aren't signed in yet. */
+async function hideGuestLinkIfSignedIn() {
+  try {
+    if (await getSession()) document.getElementById('hero-guest').hidden = true;
+  } catch {
+    /* keep the link */
+  }
+}
 
 async function showOnlineCount() {
   try {

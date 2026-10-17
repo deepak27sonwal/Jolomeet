@@ -89,6 +89,7 @@
             <h1>Create your account</h1>
             <p>Join JoloMeet and start meeting amazing people.</p>
           </header>
+          <div class="alert alert--info" id="guest-upgrade-note" hidden><svg class="icon" aria-hidden="true"><use href="assets/icons/sprite.svg#user-plus"/></svg><span>You're using JoloMeet as a guest. Create your account here and your chats come with you.</span></div>
           <div class="alert" id="register-alert" role="alert" hidden></div>
           <form class="form" id="register-form" novalidate>
           <div class="field">
@@ -108,7 +109,7 @@
             </div>
             <p class="field__error" id="register-email-error"></p>
           </div>
-          <div class="field">
+          <div class="field" data-full-only>
             <label class="field__label" for="register-password">Password</label>
             <div class="input-wrap">
               <svg class="icon" aria-hidden="true"><use href="assets/icons/sprite.svg#lock"/></svg>
@@ -119,7 +120,7 @@
             <p class="field__hint" id="register-password-hint">At least 8 characters, with a letter and a number.</p>
             <p class="field__error" id="register-password-error"></p>
           </div>
-          <div class="field">
+          <div class="field" data-full-only>
             <label class="field__label" for="register-birth-date">Date of birth</label>
             <div class="input-wrap">
               <svg class="icon" aria-hidden="true"><use href="assets/icons/sprite.svg#calendar"/></svg>
@@ -138,11 +139,11 @@
         <div class="auth__panel" data-panel="check-email" hidden>
           <header class="auth__header">
             <h1>Check your inbox</h1>
-            <p>We sent a confirmation link to <strong id="sent-to"></strong>. Open it to activate your account, then log in.</p>
+            <p id="check-email-text">We sent a confirmation link to <strong id="sent-to"></strong>. Open it to activate your account, then log in.</p>
           </header>
           <div class="alert" id="resend-alert" role="alert" hidden></div>
           <button class="btn btn--secondary btn--lg btn--block" type="button" id="resend-button">Resend Email</button>
-          <a class="btn btn--primary btn--lg btn--block" href="login.html">Go to Log In</a>
+          <a class="btn btn--primary btn--lg btn--block" href="login.html" id="check-email-next">Go to Log In</a>
         </div>
         <p class="auth__legal">By continuing you agree to our <a href="terms.html">Terms</a>, <a href="privacy.html">Privacy Policy</a> and <a href="guidelines.html">Community Guidelines</a>.</p>
       </section>

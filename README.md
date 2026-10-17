@@ -19,9 +19,9 @@ python3 -m http.server 8000
 ## Pages
 
 - `index.html`: homepage
-- `login.html`: log in, forgot password, continue as guest
-- `register.html`: create an account (email confirmation)
-- `reset-password.html`: set a new password from the emailed link
+- `login.html`: log in, forgot password, continue as guest (`login.html#guest` opens the guest form)
+- `register.html`: create an account (email confirmation); a signed-in guest upgrades their guest account here and keeps their chats
+- `reset-password.html`: set a new password from the emailed link (`?finish=1`: an upgraded guest chooses their first password)
 - `profile.html`: your profile (edit photo, cover, bio, interests, languages, privacy) or `profile.html?id=<user id>` for someone else's (chat, video, connect, report, block)
 - `chat.html`: conversations, message requests, favorites, random text matching (`chat.html?mode=random`) and a chat by id (`chat.html?c=<conversation id>`); realtime messages, typing, read receipts, photos, report and block
 

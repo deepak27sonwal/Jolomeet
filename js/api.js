@@ -76,6 +76,30 @@ export async function signInAsGuest(birthDate) {
   }
 }
 
+/**
+ * Turns the signed-in guest into a full account without losing their chats.
+ * The email is confirmed by link; that link opens the page where they choose a
+ * password (the server only allows a password once the email is confirmed).
+ */
+export async function upgradeGuest({ userId, displayName, email }) {
+  const { error: nameError } = await supabase.from('profiles').update({ display_name: displayName }).eq('id', userId);
+  if (nameError) throw nameError;
+  const { error } = await supabase.auth.updateUser(
+    { email, data: { display_name: displayName } },
+    { emailRedirectTo: authRedirect('reset-password.html?finish=1') },
+  );
+  if (error) throw error;
+}
+
+export async function resendGuestUpgrade(email) {
+  const { error } = await supabase.auth.resend({
+    type: 'email_change',
+    email,
+    options: { emailRedirectTo: authRedirect('reset-password.html?finish=1') },
+  });
+  if (error) throw error;
+}
+
 export async function resendConfirmation(email) {
   const { error } = await supabase.auth.resend({
     type: 'signup',

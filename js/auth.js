@@ -128,6 +128,12 @@ async function initRegister() {
     meter.dataset.score = String(password.value ? v.passwordStrength(password.value) : 0);
   });
 
+  const guest = await currentGuest();
+  if (guest) {
+    initGuestUpgrade(guest, { form, name, email, terms });
+    return;
+  }
+
   const rules = [
     [name, () => v.validateDisplayName(name.value)],
     [email, () => v.validateEmail(email.value)],
@@ -165,6 +171,75 @@ async function initRegister() {
   document.getElementById('resend-button').addEventListener('click', () => resend(email.value.trim(), 'resend-alert'));
 }
 
+/** The signed-in guest user, or null for visitors and full accounts. */
+async function currentGuest() {
+  try {
+    const session = await api.getSession();
+    return session?.user.is_anonymous ? session.user : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Guests keep their account: we link an email to it instead of creating a new
+ * one. Their age is already confirmed, and the password is chosen after the
+ * email link is opened, so this form only asks for a name and an email.
+ */
+function initGuestUpgrade(user, { form, name, email, terms }) {
+  document.getElementById('guest-upgrade-note').hidden = false;
+  form.querySelectorAll('[data-full-only]').forEach((field) => {
+    field.hidden = true;
+    field.querySelectorAll('input').forEach((input) => { input.required = false; });
+  });
+  document.querySelector('[data-panel="register"] h1').textContent = 'Keep your chats';
+  document.querySelector('[data-panel="register"] .auth__header p').textContent =
+    'Create your free account to get a profile, make connections and never lose a conversation.';
+  document.querySelector('.auth__switch').hidden = true;
+
+  const rules = [
+    [name, () => v.validateDisplayName(name.value)],
+    [email, () => v.validateEmail(email.value)],
+    [terms, () => (terms.checked ? '' : 'Please agree to the terms to continue.')],
+  ];
+  liveValidate(rules);
+
+  form.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    hideAlert('register-alert');
+    if (!validateAll(rules)) return;
+    const button = form.querySelector('[type="submit"]');
+    setLoading(button, true);
+    try {
+      await api.upgradeGuest({ userId: user.id, displayName: name.value.trim(), email: email.value.trim() });
+    } catch (error) {
+      setLoading(button, false);
+      showAlert('register-alert', 'error', friendlyError(error));
+      return;
+    }
+    const sentTo = document.createElement('strong');
+    sentTo.textContent = email.value.trim();
+    document.getElementById('check-email-text').replaceChildren(
+      'We sent a link to ', sentTo,
+      '. Open it to confirm your email and choose a password. Until then you can keep chatting as a guest.',
+    );
+    const next = document.getElementById('check-email-next');
+    next.href = 'chat.html';
+    next.textContent = 'Keep Chatting';
+    showPanel('check-email');
+  });
+
+  const resendButton = document.getElementById('resend-button');
+  resendButton.addEventListener('click', async () => {
+    try {
+      await api.resendGuestUpgrade(email.value.trim());
+      showAlert('resend-alert', 'success', `We sent a new link to ${email.value.trim()}.`);
+    } catch (error) {
+      showAlert('resend-alert', 'error', friendlyError(error));
+    }
+  });
+}
+
 /* ================= Reset password ================= */
 
 async function initResetPassword() {
@@ -187,6 +262,13 @@ async function initResetPassword() {
     showPanel('invalid-link');
     return;
   }
+  // a guest who just confirmed their email is choosing their first password
+  const finishing = queryParams.has('finish');
+  if (finishing) {
+    document.querySelector('[data-panel="new-password"] h1').textContent = 'Create your password';
+    document.querySelector('[data-panel="new-password"] .auth__header p').textContent =
+      'Your email is confirmed. Choose a password to finish your account.';
+  }
   showPanel('new-password', 'new-password');
 
   const form = document.getElementById('new-password-form');
@@ -204,8 +286,8 @@ async function initResetPassword() {
     setLoading(button, true);
     try {
       await api.updatePassword(password.value);
-      toast('Password updated. Welcome back!', { type: 'success' });
-      setTimeout(() => window.location.assign('index.html'), 1200);
+      toast(finishing ? 'Your account is ready. Welcome to JoloMeet!' : 'Password updated. Welcome back!', { type: 'success' });
+      setTimeout(() => window.location.assign(finishing ? 'profile.html' : 'index.html'), 1200);
     } catch (error) {
       setLoading(button, false);
       showAlert('new-password-alert', 'error', friendlyError(error));
@@ -343,6 +425,10 @@ function friendlyError(error) {
   if (code === 'user_already_exists' || /already registered/i.test(message)) {
     return 'An account with this email already exists. Try logging in instead.';
   }
+  if (code === 'email_exists' || /already been registered/i.test(message)) {
+    return 'That email already has an account. Log in to it instead (your guest chats stay with this guest session).';
+  }
+  if (/anonymous user/i.test(message)) return 'Open the link we emailed you first, then choose your password.';
   if (code === 'weak_password') return 'That password is too easy to guess. Try a longer one with a mix of characters.';
   if (code === 'same_password') return 'Your new password must be different from your old one.';
   if (code === 'anonymous_provider_disabled') return "Guest access isn't available right now. Please create a free account instead.";
