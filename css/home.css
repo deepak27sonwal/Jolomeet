@@ -60,6 +60,14 @@
 
 .avatar-stack img:first-child { margin-left: 0; }
 
+.hero__guest {
+  margin-top: var(--space-3);
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+
+.hero__guest a { color: var(--color-accent); font-weight: var(--weight-bold); }
+
 .hero__online {
   display: flex;
   align-items: center;

@@ -7,3 +7,10 @@ export const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_h9Rw_Ny6Ax2YdhitEFsJrw_8
 export const STORAGE_KEYS = {
   interests: 'jolomeet:interests',
 };
+
+// WebRTC servers used to connect two callers. These public STUN servers work
+// for most home and mobile networks; very strict networks also need a TURN
+// relay (add { urls: 'turn:…', username, credential } from a TURN provider).
+export const ICE_SERVERS = [
+  { urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'] },
+];

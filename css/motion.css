@@ -5,18 +5,27 @@
   html { scroll-behavior: smooth; }
 
   /* ---------- Page to page ---------- */
-  /* Browsers with cross-document view transitions fade between pages;
-     the header and bottom bar stay put instead of flashing. */
+  /* Switching tabs slides the new page in from the right (browser Back slides
+     the other way). The header and bottom bar stay put. js/page-transition.js
+     marks back navigations and covers browsers without view transitions. */
   @view-transition { navigation: auto; }
 
   .site-header { view-transition-name: site-header; }
   .bottom-nav { view-transition-name: bottom-nav; }
 
-  ::view-transition-old(root) { animation: vt-out 180ms var(--ease-out) both; }
-  ::view-transition-new(root) { animation: vt-in 360ms var(--ease-out) both; }
+  ::view-transition-old(root) { animation: page-out 340ms var(--ease-out) both; }
+  ::view-transition-new(root) { animation: page-in 420ms var(--ease-out) both; }
 
-  @keyframes vt-out { to { opacity: 0; transform: translateY(-6px); } }
-  @keyframes vt-in { from { opacity: 0; transform: translateY(10px); } }
+  html:active-view-transition-type(back)::view-transition-old(root) { animation-name: page-out-back; }
+  html:active-view-transition-type(back)::view-transition-new(root) { animation-name: page-in-back; }
+
+  html.page-enter { overflow-x: clip; }
+  html.page-enter main { animation: page-in 420ms var(--ease-out) both; }
+
+  @keyframes page-in { from { transform: translateX(100%); } }
+  @keyframes page-out { to { opacity: 0.4; transform: translateX(-30%); } }
+  @keyframes page-in-back { from { transform: translateX(-100%); } }
+  @keyframes page-out-back { to { opacity: 0.4; transform: translateX(30%); } }
 
   /* ---------- Scroll reveal (classes added by js/motion.js) ---------- */
   .reveal {

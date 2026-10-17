@@ -61,6 +61,7 @@ async function init() {
     return;
   }
   state.me = session.user;
+  if (state.me.is_anonymous) showGuestNotice();
 
   bindSidebar();
   bindMain();
@@ -1311,4 +1312,12 @@ async function handleUnblock(button) {
     setLoading(button, false);
     toast(friendlyError(error), { type: 'error' });
   }
+}
+
+/** Guests are reminded (once, quietly) how to keep their chats. */
+function showGuestNotice() {
+  const note = document.createElement('p');
+  note.className = 'chat-guest-note';
+  note.innerHTML = `${icon('user-plus', 'icon icon--sm')}<span>You're chatting as a guest. <a href="register.html">Create an account</a> to keep your chats.</span>`;
+  document.querySelector('.chat-sidebar__top').append(note);
 }

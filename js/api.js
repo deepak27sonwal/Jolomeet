@@ -76,6 +76,30 @@ export async function signInAsGuest(birthDate) {
   }
 }
 
+/**
+ * Turns the signed-in guest into a full account without losing their chats.
+ * The email is confirmed by link; that link opens the page where they choose a
+ * password (the server only allows a password once the email is confirmed).
+ */
+export async function upgradeGuest({ userId, displayName, email }) {
+  const { error: nameError } = await supabase.from('profiles').update({ display_name: displayName }).eq('id', userId);
+  if (nameError) throw nameError;
+  const { error } = await supabase.auth.updateUser(
+    { email, data: { display_name: displayName } },
+    { emailRedirectTo: authRedirect('reset-password.html?finish=1') },
+  );
+  if (error) throw error;
+}
+
+export async function resendGuestUpgrade(email) {
+  const { error } = await supabase.auth.resend({
+    type: 'email_change',
+    email,
+    options: { emailRedirectTo: authRedirect('reset-password.html?finish=1') },
+  });
+  if (error) throw error;
+}
+
 export async function resendConfirmation(email) {
   const { error } = await supabase.auth.resend({
     type: 'signup',
@@ -396,6 +420,24 @@ export async function joinTypingChannel(conversationId, onTyping) {
     sendTyping: (userId) => {
       if (channel.state === 'joined') channel.send({ type: 'broadcast', event: 'typing', payload: { user_id: userId } });
     },
+    leave: () => supabase.removeChannel(channel),
+  };
+}
+
+/**
+ * Private broadcast channel shared by the two people in a match session, used
+ * to exchange WebRTC offers, answers and network candidates. Only the session's
+ * participants can join (Realtime authorization in the database).
+ */
+export async function joinMatchChannel(sessionId, onSignal, onStatus) {
+  await authorizeRealtime();
+  const channel = supabase.channel(`match:${sessionId}`, {
+    config: { private: true, broadcast: { self: false, ack: false } },
+  });
+  channel.on('broadcast', { event: 'signal' }, ({ payload }) => onSignal(payload))
+    .subscribe((status) => onStatus?.(status));
+  return {
+    send: (payload) => channel.send({ type: 'broadcast', event: 'signal', payload }),
     leave: () => supabase.removeChannel(channel),
   };
 }

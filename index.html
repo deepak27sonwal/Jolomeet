@@ -21,6 +21,7 @@
   <link rel="stylesheet" href="css/components.css">
   <link rel="stylesheet" href="css/home.css">
   <link rel="stylesheet" href="css/motion.css">
+  <script src="js/page-transition.js"></script>
   <script type="module" src="js/home.js"></script>
 </head>
 <body class="has-bottom-nav" data-page="home">
@@ -37,6 +38,7 @@
         <a class="nav-link" href="index.html" data-nav="home">Home</a>
         <a class="nav-link" href="chat.html" data-nav="chat">Chat</a>
         <a class="nav-link" href="video.html" data-nav="video">Video</a>
+        <a class="nav-link" href="audio.html" data-nav="audio">Audio</a>
         <a class="nav-link" href="explore.html" data-nav="explore">Explore</a>
       </nav>
 
@@ -58,6 +60,7 @@
     <a class="mobile-menu__link" href="index.html" data-nav="home"><svg class="icon" aria-hidden="true"><use href="assets/icons/sprite.svg#home"/></svg>Home</a>
     <a class="mobile-menu__link" href="chat.html" data-nav="chat"><svg class="icon" aria-hidden="true"><use href="assets/icons/sprite.svg#chat"/></svg>Chat</a>
     <a class="mobile-menu__link" href="video.html" data-nav="video"><svg class="icon" aria-hidden="true"><use href="assets/icons/sprite.svg#video"/></svg>Video</a>
+    <a class="mobile-menu__link" href="audio.html" data-nav="audio"><svg class="icon" aria-hidden="true"><use href="assets/icons/sprite.svg#mic"/></svg>Audio</a>
     <a class="mobile-menu__link" href="explore.html" data-nav="explore"><svg class="icon" aria-hidden="true"><use href="assets/icons/sprite.svg#compass"/></svg>Explore</a>
     <div class="mobile-menu__actions">
       <a class="btn btn--secondary btn--lg btn--block" href="login.html">Login</a>
@@ -71,7 +74,7 @@
       <div class="container hero__inner">
         <div class="hero__content">
           <h1 id="hero-title">Meet Amazing <span class="hero__line">People <span class="hero__title-accent">Worldwide</span></span></h1>
-          <p class="hero__lead">Random chat and video calls with real people. Discover new friends, share your vibe, and see where the conversation takes you. &#10024;</p>
+          <p class="hero__lead">Random chat, voice and video calls with real people. Discover new friends, share your vibe, and see where the conversation takes you. &#10024;</p>
 
           <div class="hero__actions">
             <a class="btn btn--primary btn--hero" href="chat.html?mode=random" data-start="text">
@@ -82,7 +85,12 @@
               <span class="btn__icon"><svg class="icon icon--filled" aria-hidden="true"><use href="assets/icons/sprite.svg#video"/></svg></span>
               <span class="btn__text">Start Video Chat<small>Face to face instantly</small></span>
             </a>
+            <a class="btn btn--audio btn--hero" href="audio.html" data-start="audio">
+              <span class="btn__icon"><svg class="icon" aria-hidden="true"><use href="assets/icons/sprite.svg#mic"/></svg></span>
+              <span class="btn__text">Start Audio Call<small>Voice only, no camera</small></span>
+            </a>
           </div>
+          <p class="hero__guest" id="hero-guest">No sign-up needed: <a href="login.html?next=chat.html%3Fmode%3Drandom#guest">try it as a guest</a></p>
 
           <div class="hero__social">
             <div class="avatar-stack" aria-hidden="true">
@@ -225,6 +233,7 @@
           <div class="cta__actions">
             <a class="btn btn--secondary btn--lg" href="chat.html?mode=random" data-start="text">Start Text Chat</a>
             <a class="btn btn--outline-light btn--lg" href="video.html" data-start="video">Start Video Chat</a>
+            <a class="btn btn--outline-light btn--lg" href="audio.html" data-start="audio">Start Audio Call</a>
           </div>
         </div>
       </div>

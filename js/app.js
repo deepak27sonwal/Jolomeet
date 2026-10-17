@@ -2,6 +2,7 @@
 import { initNavigation } from './navigation.js';
 import { getSession, signOut, touchPresence } from './api.js';
 import { initReveal } from './motion.js';
+import { confirmAction } from './dialogs.js';
 
 export function initApp() {
   initNavigation();
@@ -37,7 +38,7 @@ async function initAuthHeader() {
     logout.type = 'button';
     logout.className = `btn btn--primary ${extraClass}`;
     logout.textContent = 'Log Out';
-    logout.addEventListener('click', handleLogout);
+    logout.addEventListener('click', (event) => handleLogout(event, guest));
     return [link, logout];
   };
 
@@ -59,8 +60,17 @@ function startPresenceHeartbeat() {
   document.addEventListener('visibilitychange', beat);
 }
 
-async function handleLogout(event) {
+async function handleLogout(event, guest) {
   const button = event.currentTarget;
+  // a guest account can't be logged back into, so make sure they mean it
+  if (guest) {
+    const ok = await confirmAction({
+      title: 'Leave guest mode?',
+      message: "Guest chats can't be recovered after you log out. Create a free account first to keep them.",
+      confirmLabel: 'Log Out',
+    });
+    if (!ok) return;
+  }
   button.disabled = true;
   try {
     await signOut();
