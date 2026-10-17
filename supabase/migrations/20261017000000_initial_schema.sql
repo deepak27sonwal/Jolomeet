@@ -1496,8 +1496,21 @@ grant insert (reported_user_id, context, reason, details, message_id, conversati
 grant update (status, moderator_notes, resolved_by, resolved_at) on public.reports to authenticated;
 
 -- Functions: nothing is executable by default; then grant what is needed.
+-- (only JoloMeet's own public functions are touched; Supabase ships others there)
 revoke execute on all functions in schema private from public, anon, authenticated;
-revoke execute on all functions in schema public  from public, anon, authenticated;
+revoke execute on function
+  public.confirm_age(date),
+  public.touch_presence(),
+  public.request_match(public.chat_mode, text[], text[]),
+  public.leave_match_queue(),
+  public.end_match_session(uuid, text),
+  public.start_direct_conversation(uuid),
+  public.start_direct_call(uuid),
+  public.respond_to_call(uuid, boolean),
+  public.list_my_conversations(text, int, timestamptz),
+  public.explore_profiles(text, text[], text[], boolean, text, int, int),
+  public.get_profile(uuid)
+from public, anon, authenticated;
 
 -- Helpers referenced inside RLS policies must be executable by the caller.
 -- They live in the private schema, so they cannot be called through the API.
