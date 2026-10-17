@@ -23,9 +23,9 @@
   <link rel="stylesheet" href="css/call.css">
   <link rel="stylesheet" href="css/motion.css">
   <script src="js/page-transition.js"></script>
-  <script type="module" src="js/audio.js"></script>
+  <script type="module" src="js/call.js"></script>
 </head>
-<body class="call-page has-bottom-nav" data-page="audio">
+<body class="call-page has-bottom-nav" data-page="audio" data-mode="audio">
   <a class="skip-link" href="#main">Skip to content</a>
 
   <header class="site-header">
@@ -70,7 +70,7 @@
   </nav>
 
   <main id="main" class="call">
-    <!-- start / searching / connecting / live / ended screens are rendered by js/audio.js -->
+    <!-- start / searching / connecting / live / ended screens are rendered by js/call.js -->
     <section class="call-stage" id="call-stage" aria-live="polite" aria-busy="true">
       <span class="spinner" aria-hidden="true"></span>
     </section>

@@ -94,7 +94,7 @@ Errors use custom SQLSTATE codes that the UI can map to messages:
 ## Calls (WebRTC)
 
 - `chat_mode` is `text`, `video` or `audio` (`20261018000000_audio_calls.sql`); `request_match` pairs people in the same mode only.
-- After a match, both browsers join the private Realtime channel `match:<session id>` (only the session's two participants are authorized) and exchange WebRTC offer/answer/ICE messages there. Audio flows directly between the two browsers; nothing is recorded or stored.
+- After a match, both browsers join the private Realtime channel `match:<session id>` (only the session's two participants are authorized) and exchange WebRTC offer/answer/ICE messages there. Audio and video flow directly between the two browsers; nothing is recorded or stored. Besides the WebRTC messages, the pages send `{ kind: 'media', muted, cameraOff }` so each side can show the other's mute/camera state.
 - `js/config.js` lists public STUN servers. Calls between people on very strict networks (some offices, schools, mobile carriers) need a TURN relay as well; add one from a TURN provider to `ICE_SERVERS` when needed.
 - Reports from a call use the `audio_call` (or `video_call`) context with the session id.
 
