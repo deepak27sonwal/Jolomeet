@@ -285,8 +285,10 @@
   flex-direction: column;
   max-width: min(72%, 520px);
   margin-bottom: var(--space-2);
-  animation: msg-in var(--duration-base) var(--ease-out);
 }
+
+/* only messages that arrive while the chat is open animate in */
+.msg--new { animation: msg-in var(--duration-slow) var(--ease-out); }
 
 .msg--in { align-items: flex-start; margin-right: auto; }
 .msg--out { align-items: flex-end; margin-left: auto; }
