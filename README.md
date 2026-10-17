@@ -16,6 +16,13 @@ python3 -m http.server 8000
 # then open http://localhost:8000
 ```
 
+## Pages
+
+- `index.html`: homepage
+- `login.html`: log in, forgot password, continue as guest
+- `register.html`: create an account (email confirmation)
+- `reset-password.html`: set a new password from the emailed link
+
 ## Frontend structure
 
 - `css/variables.css`: colours, type scale, spacing, radii, shadows (the design tokens)
@@ -23,4 +30,5 @@ python3 -m http.server 8000
 - `css/<page>.css`: page-specific styles
 - `js/config.js`: public Supabase URL and publishable key (safe for browsers; all data is protected by RLS)
 - `js/api.js`: every Supabase call goes through here
-- `js/app.js`, `js/navigation.js`: shared setup, toasts, header/menu behaviour
+- `js/app.js`, `js/navigation.js`: shared setup, toasts, header/menu behaviour, signed-in header
+- `js/auth.js`, `js/validation.js`: login/register/reset flows and form validation
