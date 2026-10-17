@@ -1,0 +1,286 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Profile · JoloMeet</title>
+  <meta name="description" content="JoloMeet profile.">
+  <meta name="theme-color" content="#E91E78">
+  <meta name="robots" content="noindex">
+  <link rel="icon" href="assets/images/logo-32.png" type="image/png" sizes="32x32">
+  <link rel="icon" href="assets/images/logo-192.png" type="image/png" sizes="192x192">
+  <link rel="apple-touch-icon" href="assets/images/logo-180.png">
+  <meta property="og:title" content="JoloMeet: Meet Amazing People Worldwide">
+  <meta property="og:description" content="Random text and video chat with real people. Discover new friends and share your vibe.">
+  <meta property="og:image" content="assets/images/logo-512.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+  <link rel="stylesheet" href="css/variables.css">
+  <link rel="stylesheet" href="css/global.css">
+  <link rel="stylesheet" href="css/layout.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/profile.css">
+  <script type="module" src="js/profile.js"></script>
+</head>
+<body class="has-bottom-nav" data-page="profile">
+  <a class="skip-link" href="#main">Skip to content</a>
+
+  <header class="site-header">
+    <div class="container site-header__inner">
+      <a class="brand" href="index.html" aria-label="JoloMeet home">
+        <img class="brand__logo" src="assets/images/logo-96.png" alt="" width="44" height="44">
+        <span>Jolo<span class="brand__accent">Meet</span></span>
+      </a>
+
+      <nav class="primary-nav" aria-label="Main">
+        <a class="nav-link" href="index.html" data-nav="home">Home</a>
+        <a class="nav-link" href="chat.html" data-nav="chat">Chat</a>
+        <a class="nav-link" href="video.html" data-nav="video">Video</a>
+        <a class="nav-link" href="explore.html" data-nav="explore">Explore</a>
+      </nav>
+
+      <div class="site-header__actions">
+        <a class="icon-button" href="explore.html" aria-label="Search people">
+          <svg class="icon" aria-hidden="true"><use href="assets/icons/sprite.svg#search"/></svg>
+        </a>
+        <a class="btn btn--secondary" href="login.html">Login</a>
+        <a class="btn btn--primary" href="register.html">Get Started</a>
+      </div>
+
+      <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="mobile-menu" aria-label="Open menu">
+        <svg class="icon" aria-hidden="true"><use href="assets/icons/sprite.svg#menu"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <nav class="mobile-menu" id="mobile-menu" aria-label="Mobile">
+    <a class="mobile-menu__link" href="index.html" data-nav="home"><svg class="icon" aria-hidden="true"><use href="assets/icons/sprite.svg#home"/></svg>Home</a>
+    <a class="mobile-menu__link" href="chat.html" data-nav="chat"><svg class="icon" aria-hidden="true"><use href="assets/icons/sprite.svg#chat"/></svg>Chat</a>
+    <a class="mobile-menu__link" href="video.html" data-nav="video"><svg class="icon" aria-hidden="true"><use href="assets/icons/sprite.svg#video"/></svg>Video</a>
+    <a class="mobile-menu__link" href="explore.html" data-nav="explore"><svg class="icon" aria-hidden="true"><use href="assets/icons/sprite.svg#compass"/></svg>Explore</a>
+    <div class="mobile-menu__actions">
+      <a class="btn btn--secondary btn--lg btn--block" href="login.html">Login</a>
+      <a class="btn btn--primary btn--lg btn--block" href="register.html">Get Started</a>
+    </div>
+  </nav>
+
+  <main id="main" class="profile-page">
+    <div class="container">
+      <div class="profile" id="profile-root" aria-busy="true">
+        <!-- loading skeleton, replaced by js/profile.js -->
+        <div class="card profile-hero profile-skeleton">
+          <div class="profile-cover"></div>
+          <div class="profile-head">
+            <span class="avatar profile-avatar skeleton"></span>
+            <div class="profile-identity"><span class="skeleton skeleton--title"></span></div>
+          </div>
+        </div>
+        <div class="profile-grid profile-skeleton">
+          <div class="card profile-section"><span class="skeleton skeleton--line"></span><span class="skeleton skeleton--line"></span></div>
+          <div class="card profile-section"><span class="skeleton skeleton--line"></span></div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Edit profile -->
+  <dialog class="modal" id="edit-dialog" aria-labelledby="edit-title">
+    <form class="modal__form" id="edit-form" method="dialog" novalidate>
+      <header class="modal__header">
+        <h2 id="edit-title">Edit Profile</h2>
+        <button class="icon-button" type="button" data-close aria-label="Close"><svg class="icon" aria-hidden="true"><use href="assets/icons/sprite.svg#close"/></svg></button>
+      </header>
+      <div class="modal__body">
+        <div class="alert" id="edit-alert" role="alert" hidden></div>
+
+        <div class="field">
+          <span class="field__label">Profile photo</span>
+          <div class="image-picker">
+            <span class="avatar" id="edit-avatar-preview"></span>
+            <label class="btn btn--secondary btn--sm" for="edit-avatar"><svg class="icon icon--sm" aria-hidden="true"><use href="assets/icons/sprite.svg#camera"/></svg>Change photo</label>
+            <input type="file" id="edit-avatar" accept="image/jpeg,image/png,image/webp" aria-describedby="edit-avatar-error">
+          </div>
+          <p class="field__hint">JPG, PNG or WebP, up to 2 MB.</p>
+          <p class="field__error" id="edit-avatar-error"></p>
+        </div>
+
+        <div class="field">
+          <span class="field__label">Cover image</span>
+          <div class="image-picker">
+            <span class="image-picker__cover" id="edit-cover-preview"></span>
+            <label class="btn btn--secondary btn--sm" for="edit-cover"><svg class="icon icon--sm" aria-hidden="true"><use href="assets/icons/sprite.svg#camera"/></svg>Change cover</label>
+            <input type="file" id="edit-cover" accept="image/jpeg,image/png,image/webp" aria-describedby="edit-cover-error">
+          </div>
+          <p class="field__hint">JPG, PNG or WebP, up to 5 MB.</p>
+          <p class="field__error" id="edit-cover-error"></p>
+        </div>
+
+        <div class="field">
+          <label class="field__label" for="edit-name">Display name</label>
+          <input class="input input--plain" id="edit-name" type="text" maxlength="40" required autofocus autocomplete="nickname" aria-describedby="edit-name-error">
+          <p class="field__error" id="edit-name-error"></p>
+        </div>
+
+        <div class="field">
+          <label class="field__label" for="edit-username">Username <span class="profile-muted">(optional)</span></label>
+          <input class="input input--plain" id="edit-username" type="text" maxlength="20" autocomplete="username" spellcheck="false" aria-describedby="edit-username-hint edit-username-error">
+          <p class="field__hint" id="edit-username-hint">3–20 lowercase letters, numbers or underscores.</p>
+          <p class="field__error" id="edit-username-error"></p>
+        </div>
+
+        <div class="field">
+          <label class="field__label" for="edit-bio">Bio</label>
+          <textarea class="input input--plain" id="edit-bio" maxlength="300" rows="4" placeholder="Tell people a little about yourself" aria-describedby="edit-bio-error"></textarea>
+          <span class="field__counter" id="edit-bio-counter" aria-live="polite">0/300</span>
+          <p class="field__error" id="edit-bio-error"></p>
+        </div>
+
+        <fieldset class="field fieldset">
+          <legend class="field__label">Interests <span class="profile-muted">(up to 10)</span></legend>
+          <div class="chip-list" id="edit-interests" role="group" aria-label="Interests"></div>
+        </fieldset>
+
+        <fieldset class="field fieldset">
+          <legend class="field__label">Languages <span class="profile-muted">(up to 5)</span></legend>
+          <div class="chip-list" id="edit-languages" role="group" aria-label="Languages"></div>
+        </fieldset>
+
+        <div class="field">
+          <label class="field__label" for="edit-visibility">Who can see your profile</label>
+          <select class="input input--plain" id="edit-visibility">
+            <option value="public">Everyone (shown in Explore)</option>
+            <option value="connections">Only my connections</option>
+            <option value="private">Only people I'm chatting with</option>
+          </select>
+        </div>
+
+        <div class="toggle-list">
+          <label class="checkbox"><input type="checkbox" id="edit-show-age"> <span>Show my age on my profile</span></label>
+          <label class="checkbox"><input type="checkbox" id="edit-show-online"> <span>Show when I'm online</span></label>
+        </div>
+      </div>
+      <footer class="modal__footer">
+        <button class="btn btn--secondary" type="button" data-close>Cancel</button>
+        <button class="btn btn--primary" type="submit">Save Changes</button>
+      </footer>
+    </form>
+  </dialog>
+
+  <!-- Report -->
+  <dialog class="modal modal--sm" id="report-dialog" aria-labelledby="report-title">
+    <form id="report-form" method="dialog" novalidate>
+      <header class="modal__header">
+        <h2 id="report-title">Report</h2>
+        <button class="icon-button" type="button" data-close aria-label="Close"><svg class="icon" aria-hidden="true"><use href="assets/icons/sprite.svg#close"/></svg></button>
+      </header>
+      <div class="modal__body">
+        <p class="profile-muted">Reports are confidential. Our moderators review every one.</p>
+        <div class="alert" id="report-alert" role="alert" hidden></div>
+        <div class="field">
+          <label class="field__label" for="report-reason">Reason</label>
+          <select class="input input--plain" id="report-reason" required aria-describedby="report-reason-error">
+            <option value="">Choose a reason</option>
+            <option value="spam">Spam or scam</option>
+            <option value="harassment">Harassment or bullying</option>
+            <option value="hate">Hate speech</option>
+            <option value="nudity">Nudity or sexual content</option>
+            <option value="violence">Violence or threats</option>
+            <option value="underage">Appears to be under 18</option>
+            <option value="impersonation">Pretending to be someone else</option>
+            <option value="other">Something else</option>
+          </select>
+          <p class="field__error" id="report-reason-error"></p>
+        </div>
+        <div class="field">
+          <label class="field__label" for="report-details">Details <span class="profile-muted">(optional)</span></label>
+          <textarea class="input input--plain" id="report-details" maxlength="1000" rows="3" placeholder="What happened?"></textarea>
+        </div>
+        <label class="checkbox"><input type="checkbox" id="report-block" checked> <span>Also block this person</span></label>
+      </div>
+      <footer class="modal__footer">
+        <button class="btn btn--secondary" type="button" data-close>Cancel</button>
+        <button class="btn btn--danger" type="submit">Submit Report</button>
+      </footer>
+    </form>
+  </dialog>
+
+  <!-- Confirmation -->
+  <dialog class="modal modal--sm" id="confirm-dialog" aria-labelledby="confirm-title" aria-describedby="confirm-message">
+    <header class="modal__header"><h2 id="confirm-title"></h2></header>
+    <div class="modal__body"><p id="confirm-message" class="profile-muted"></p></div>
+    <footer class="modal__footer">
+      <button class="btn btn--secondary" type="button" data-confirm="no">Cancel</button>
+      <button class="btn btn--danger" type="button" data-confirm="yes" id="confirm-yes"></button>
+    </footer>
+  </dialog>
+
+  <footer class="site-footer">
+    <div class="footer-hearts" aria-hidden="true">
+      <svg class="icon icon--filled"><use href="assets/icons/sprite.svg#heart"/></svg>
+      <svg class="icon icon--filled"><use href="assets/icons/sprite.svg#heart"/></svg>
+      <svg class="icon icon--filled"><use href="assets/icons/sprite.svg#heart"/></svg>
+      <svg class="icon icon--filled"><use href="assets/icons/sprite.svg#heart"/></svg>
+      <svg class="icon icon--filled"><use href="assets/icons/sprite.svg#heart"/></svg>
+      <svg class="icon icon--filled"><use href="assets/icons/sprite.svg#heart"/></svg>
+      <svg class="icon icon--filled"><use href="assets/icons/sprite.svg#heart"/></svg>
+      <svg class="icon icon--filled"><use href="assets/icons/sprite.svg#heart"/></svg>
+      <svg class="icon icon--filled"><use href="assets/icons/sprite.svg#heart"/></svg>
+      <svg class="icon icon--filled"><use href="assets/icons/sprite.svg#heart"/></svg>
+      <svg class="icon icon--filled"><use href="assets/icons/sprite.svg#heart"/></svg>
+      <svg class="icon icon--filled"><use href="assets/icons/sprite.svg#heart"/></svg>
+      <svg class="icon icon--filled"><use href="assets/icons/sprite.svg#heart"/></svg>
+      <svg class="icon icon--filled"><use href="assets/icons/sprite.svg#heart"/></svg>
+    </div>
+    <div class="container">
+      <div class="site-footer__grid">
+        <div class="site-footer__about">
+          <a class="brand" href="index.html" aria-label="JoloMeet home">
+            <img class="brand__logo" src="assets/images/logo-96.png" alt="" width="44" height="44">
+            <span>Jolo<span class="brand__accent">Meet</span></span>
+          </a>
+          <p>Random text and video chat for meeting new people who share your interests.</p>
+        </div>
+        <nav aria-labelledby="footer-company">
+          <h2 id="footer-company">Company</h2>
+          <ul class="site-footer__links" role="list">
+            <li><a href="about.html">About JoloMeet</a></li>
+            <li><a href="contact.html">Contact</a></li>
+          </ul>
+        </nav>
+        <nav aria-labelledby="footer-support">
+          <h2 id="footer-support">Support</h2>
+          <ul class="site-footer__links" role="list">
+            <li><a href="help.html">Help Center</a></li>
+            <li><a href="safety.html">Safety Center</a></li>
+            <li><a href="guidelines.html">Community Guidelines</a></li>
+          </ul>
+        </nav>
+        <nav aria-labelledby="footer-legal">
+          <h2 id="footer-legal">Legal</h2>
+          <ul class="site-footer__links" role="list">
+            <li><a href="privacy.html">Privacy Policy</a></li>
+            <li><a href="terms.html">Terms of Service</a></li>
+          </ul>
+        </nav>
+      </div>
+      <div class="site-footer__bottom">
+        <p>&copy; <span data-year></span> JoloMeet</p>
+        <p>Made with <span class="footer-love" aria-label="love">&#10084;</span> for new friendships</p>
+      </div>
+    </div>
+  </footer>
+
+  <nav class="bottom-nav" aria-label="Quick navigation">
+    <ul class="bottom-nav__list" role="list">
+      <li><a class="bottom-nav__link" href="index.html" data-nav="home"><svg class="icon" aria-hidden="true"><use href="assets/icons/sprite.svg#home"/></svg>Home</a></li>
+      <li><a class="bottom-nav__link" href="chat.html" data-nav="chat"><svg class="icon" aria-hidden="true"><use href="assets/icons/sprite.svg#chat"/></svg>Chat</a></li>
+      <li><a class="bottom-nav__link" href="video.html" data-nav="video"><svg class="icon" aria-hidden="true"><use href="assets/icons/sprite.svg#video"/></svg>Video</a></li>
+      <li><a class="bottom-nav__link" href="explore.html" data-nav="explore"><svg class="icon" aria-hidden="true"><use href="assets/icons/sprite.svg#compass"/></svg>Explore</a></li>
+      <li><a class="bottom-nav__link" href="profile.html" data-nav="profile"><svg class="icon" aria-hidden="true"><use href="assets/icons/sprite.svg#user"/></svg>Profile</a></li>
+    </ul>
+  </nav>
+
+  <div class="toast-region" id="toast-region" role="status" aria-live="polite"></div>
+</body>
+</html>

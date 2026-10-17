@@ -128,7 +128,10 @@
   place-items: center;
   width: 42px;
   height: 42px;
+  padding: 0;
+  border: 0;
   border-radius: 50%;
+  background: transparent;
   color: var(--color-nav);
   transition: background-color var(--duration-fast), color var(--duration-fast);
 }

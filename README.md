@@ -22,6 +22,7 @@ python3 -m http.server 8000
 - `login.html`: log in, forgot password, continue as guest
 - `register.html`: create an account (email confirmation)
 - `reset-password.html`: set a new password from the emailed link
+- `profile.html`: your profile (edit photo, cover, bio, interests, languages, privacy) or `profile.html?id=<user id>` for someone else's (chat, video, connect, report, block)
 
 ## Frontend structure
 
