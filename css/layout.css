@@ -263,9 +263,79 @@ body.menu-open { overflow: hidden; }
 
 /* ---------- Footer ---------- */
 .site-footer {
+  position: relative;
+  overflow: hidden;
   padding-block: var(--space-12) var(--space-8);
-  background: var(--color-bg-blush);
+  background: linear-gradient(180deg, var(--color-bg-soft) 0%, var(--color-selected) 100%);
   border-top: 1px solid var(--color-border);
+}
+
+.site-footer > .container { position: relative; z-index: 1; }
+
+.footer-love { color: var(--color-primary); }
+
+/* Decorative hearts drifting up behind the footer content */
+.footer-hearts {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.footer-hearts svg {
+  position: absolute;
+  left: var(--x);
+  bottom: -40px;
+  margin-left: calc(var(--size) / -2);
+  width: var(--size);
+  height: var(--size);
+  color: var(--c);
+  opacity: 0;
+  animation: heart-float var(--dur) linear var(--delay) infinite;
+}
+
+.footer-hearts svg:nth-child(1) { --x: 1%; --size: 18px; --dur: 11s; --delay: 0s; --c: var(--color-primary); --rest: 20%; }
+.footer-hearts svg:nth-child(2) { --x: 5%; --size: 26px; --dur: 14s; --delay: -6s; --c: var(--color-secondary); --rest: 62%; }
+.footer-hearts svg:nth-child(3) { --x: 3%; --size: 14px; --dur: 9s; --delay: -2s; --c: var(--color-accent); --rest: 38%; }
+.footer-hearts svg:nth-child(4) { --x: 7%; --size: 22px; --dur: 13s; --delay: -9s; --c: var(--color-primary); --rest: 78%; }
+.footer-hearts svg:nth-child(5) { --x: 2%; --size: 16px; --dur: 10s; --delay: -4s; --c: var(--color-secondary); --rest: 15%; }
+.footer-hearts svg:nth-child(6) { --x: 6%; --size: 30px; --dur: 16s; --delay: -11s; --c: var(--color-accent); --rest: 50%; }
+.footer-hearts svg:nth-child(7) { --x: 4%; --size: 18px; --dur: 12s; --delay: -7s; --c: var(--color-primary); --rest: 88%; }
+.footer-hearts svg:nth-child(8) { --x: 93%; --size: 24px; --dur: 15s; --delay: -1s; --c: var(--color-secondary); --rest: 72%; }
+.footer-hearts svg:nth-child(9) { --x: 97%; --size: 14px; --dur: 9s; --delay: -5s; --c: var(--color-accent); --rest: 44%; }
+.footer-hearts svg:nth-child(10) { --x: 95%; --size: 26px; --dur: 13s; --delay: -3s; --c: var(--color-primary); --rest: 18%; }
+.footer-hearts svg:nth-child(11) { --x: 91%; --size: 18px; --dur: 11s; --delay: -8s; --c: var(--color-secondary); --rest: 66%; }
+.footer-hearts svg:nth-child(12) { --x: 96%; --size: 30px; --dur: 17s; --delay: -12s; --c: var(--color-accent); --rest: 36%; }
+.footer-hearts svg:nth-child(13) { --x: 94%; --size: 16px; --dur: 10s; --delay: -6s; --c: var(--color-primary); --rest: 82%; }
+.footer-hearts svg:nth-child(14) { --x: 98%; --size: 20px; --dur: 14s; --delay: -10s; --c: var(--color-accent); --rest: 55%; }
+
+@keyframes heart-float {
+  0%   { transform: translate(0, 0) rotate(-12deg) scale(0.8); opacity: 0; }
+  10%  { opacity: 0.45; }
+  35%  { transform: translate(8px, -160px) rotate(8deg) scale(1); }
+  65%  { transform: translate(-8px, -300px) rotate(-6deg) scale(1.05); opacity: 0.35; }
+  100% { transform: translate(4px, -460px) rotate(10deg) scale(0.9); opacity: 0; }
+}
+
+/* On narrow screens the side lanes are thin, so use smaller hearts */
+@media (max-width: 767px) {
+  .footer-hearts svg {
+    width: calc(var(--size) * 0.5);
+    height: calc(var(--size) * 0.5);
+    margin-left: 0;
+  }
+
+  /* pin each lane to its screen edge, inside the side gutter */
+  .footer-hearts svg:nth-child(-n + 7) { left: 2px; }
+  .footer-hearts svg:nth-child(n + 8) { left: auto; right: 2px; }
+}
+
+/* No motion: keep the hearts as a still, scattered pattern */
+@media (prefers-reduced-motion: reduce) {
+  .footer-hearts svg {
+    bottom: var(--rest);
+    animation: none;
+    opacity: 0.25;
+  }
 }
 
 .site-footer__grid {
