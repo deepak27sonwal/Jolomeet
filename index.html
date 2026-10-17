@@ -1,0 +1,276 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>JoloMeet: Meet Amazing People Worldwide</title>
+  <meta name="description" content="Random text and video chat with real people. Discover new friends, share your vibe, and see where the conversation takes you.">
+  <meta name="theme-color" content="#C90068">
+  <link rel="icon" href="assets/icons/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+  <link rel="stylesheet" href="css/variables.css">
+  <link rel="stylesheet" href="css/global.css">
+  <link rel="stylesheet" href="css/layout.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/home.css">
+  <script type="module" src="js/home.js"></script>
+</head>
+<body class="has-bottom-nav" data-page="home">
+  <a class="skip-link" href="#main">Skip to content</a>
+
+  <header class="site-header">
+    <div class="container site-header__inner">
+      <a class="brand" href="index.html" aria-label="JoloMeet home">
+        <span class="brand__mark"><svg class="icon icon--filled" aria-hidden="true"><use href="assets/icons/sprite.svg#heart"/></svg></span>
+        <span>Jolo<span class="brand__accent">Meet</span></span>
+      </a>
+
+      <nav class="primary-nav" aria-label="Main">
+        <a class="nav-link" href="index.html" data-nav="home">Home</a>
+        <a class="nav-link" href="chat.html" data-nav="chat">Chat</a>
+        <a class="nav-link" href="video.html" data-nav="video">Video</a>
+        <a class="nav-link" href="explore.html" data-nav="explore">Explore</a>
+      </nav>
+
+      <div class="site-header__actions">
+        <a class="btn btn--secondary" href="login.html">Login</a>
+        <a class="btn btn--primary" href="register.html">Get Started</a>
+      </div>
+
+      <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="mobile-menu" aria-label="Open menu">
+        <svg class="icon" aria-hidden="true"><use href="assets/icons/sprite.svg#menu"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <nav class="mobile-menu" id="mobile-menu" aria-label="Mobile">
+    <a class="mobile-menu__link" href="index.html" data-nav="home"><svg class="icon" aria-hidden="true"><use href="assets/icons/sprite.svg#home"/></svg>Home</a>
+    <a class="mobile-menu__link" href="chat.html" data-nav="chat"><svg class="icon" aria-hidden="true"><use href="assets/icons/sprite.svg#chat"/></svg>Chat</a>
+    <a class="mobile-menu__link" href="video.html" data-nav="video"><svg class="icon" aria-hidden="true"><use href="assets/icons/sprite.svg#video"/></svg>Video</a>
+    <a class="mobile-menu__link" href="explore.html" data-nav="explore"><svg class="icon" aria-hidden="true"><use href="assets/icons/sprite.svg#compass"/></svg>Explore</a>
+    <div class="mobile-menu__actions">
+      <a class="btn btn--secondary btn--lg btn--block" href="login.html">Login</a>
+      <a class="btn btn--primary btn--lg btn--block" href="register.html">Get Started</a>
+    </div>
+  </nav>
+
+  <main id="main">
+    <!-- Hero -->
+    <section class="hero" aria-labelledby="hero-title">
+      <div class="container hero__inner">
+        <div class="hero__content">
+          <p class="hero__badge">
+            <span class="hero__badge-icon"><svg class="icon icon--sm" aria-hidden="true"><use href="assets/icons/sprite.svg#sparkles"/></svg></span>
+            Text &amp; video chat, matched by vibe
+          </p>
+          <h1 id="hero-title">Meet <span class="hero__title-accent">Amazing People</span> Worldwide</h1>
+          <p class="hero__lead">Random text and video chat with real people. Discover new friends, share your vibe, and see where the conversation takes you.</p>
+          <div class="hero__actions">
+            <a class="btn btn--primary btn--lg" href="chat.html?mode=random" data-start="text">
+              <svg class="icon" aria-hidden="true"><use href="assets/icons/sprite.svg#chat"/></svg>
+              Start Text Chat
+            </a>
+            <a class="btn btn--secondary btn--lg" href="video.html" data-start="video">
+              <svg class="icon" aria-hidden="true"><use href="assets/icons/sprite.svg#video"/></svg>
+              Start Video Chat
+            </a>
+          </div>
+          <p class="hero__note">
+            <svg class="icon icon--sm" aria-hidden="true"><use href="assets/icons/sprite.svg#shield"/></svg>
+            18+ only. Report or block anyone, any time.
+          </p>
+        </div>
+
+        <div class="collage" role="img" aria-label="Illustration of people meeting on JoloMeet">
+          <span class="collage__blob" aria-hidden="true"></span>
+          <figure class="collage__card"><img src="assets/images/person-1.svg" alt="" width="240" height="300" fetchpriority="high"></figure>
+          <figure class="collage__card"><img src="assets/images/person-2.svg" alt="" width="240" height="300" fetchpriority="high"></figure>
+          <figure class="collage__card"><img src="assets/images/person-3.svg" alt="" width="240" height="300" loading="lazy"></figure>
+          <figure class="collage__card"><img src="assets/images/person-4.svg" alt="" width="240" height="300" loading="lazy"></figure>
+          <span class="collage__chip collage__chip--top" aria-hidden="true">
+            <svg class="icon icon--sm" aria-hidden="true"><use href="assets/icons/sprite.svg#sparkles"/></svg>Shared vibe: Music
+          </span>
+          <span class="collage__chip collage__chip--bottom" aria-hidden="true">
+            <svg class="icon icon--sm icon--filled" aria-hidden="true"><use href="assets/icons/sprite.svg#heart"/></svg>New friend?
+          </span>
+          <svg class="doodle doodle--1 icon icon--filled" aria-hidden="true"><use href="assets/icons/sprite.svg#heart"/></svg>
+          <svg class="doodle doodle--2 icon" aria-hidden="true"><use href="assets/icons/sprite.svg#heart"/></svg>
+          <svg class="doodle doodle--3 icon icon--filled" aria-hidden="true"><use href="assets/icons/sprite.svg#heart"/></svg>
+        </div>
+      </div>
+    </section>
+
+    <!-- Interest picker -->
+    <section class="section section--soft" aria-labelledby="vibe-title">
+      <div class="container">
+        <div class="card vibe">
+          <p class="eyebrow">Interest matching</p>
+          <h2 id="vibe-title">What's your vibe?</h2>
+          <p class="vibe__lead">
+            Pick a few interests and we'll try to match you with people who share them.
+          </p>
+
+          <div class="chip-list" id="interest-chips" role="group" aria-labelledby="vibe-title" aria-busy="true">
+            <span class="skeleton skeleton--chip"></span>
+            <span class="skeleton skeleton--chip"></span>
+            <span class="skeleton skeleton--chip"></span>
+            <span class="skeleton skeleton--chip"></span>
+            <span class="skeleton skeleton--chip"></span>
+            <span class="skeleton skeleton--chip"></span>
+          </div>
+
+          <div class="vibe__footer">
+            <p class="vibe__count" id="interest-count" aria-live="polite">No interests selected yet</p>
+            <a class="btn btn--primary" href="chat.html?mode=random" data-start="text">
+              Find a Match
+              <svg class="icon icon--sm" aria-hidden="true"><use href="assets/icons/sprite.svg#arrow-right"/></svg>
+            </a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Features -->
+    <section class="section" aria-labelledby="features-title">
+      <div class="container">
+        <header class="section-header">
+          <p class="eyebrow">Why JoloMeet</p>
+          <h2 id="features-title">Built for real conversations</h2>
+          <p>Everything you need to meet someone new, and stay in control while you do.</p>
+        </header>
+
+        <ul class="feature-grid" role="list">
+          <li class="card card--interactive feature-card">
+            <span class="icon-badge"><svg class="icon" aria-hidden="true"><use href="assets/icons/sprite.svg#shuffle"/></svg></span>
+            <h3>Random Matching</h3>
+            <p>Get paired with someone new in seconds. Not feeling it? Tap Next.</p>
+          </li>
+          <li class="card card--interactive feature-card">
+            <span class="icon-badge"><svg class="icon" aria-hidden="true"><use href="assets/icons/sprite.svg#video"/></svg></span>
+            <h3>HD Video Calls</h3>
+            <p>Face-to-face chats over a direct, encrypted connection, right in your browser.</p>
+          </li>
+          <li class="card card--interactive feature-card">
+            <span class="icon-badge"><svg class="icon" aria-hidden="true"><use href="assets/icons/sprite.svg#chat"/></svg></span>
+            <h3>Live Text Chat</h3>
+            <p>Prefer typing? Chat in real time with typing indicators and read receipts.</p>
+          </li>
+          <li class="card card--interactive feature-card">
+            <span class="icon-badge"><svg class="icon" aria-hidden="true"><use href="assets/icons/sprite.svg#shield"/></svg></span>
+            <h3>Safe and Secure</h3>
+            <p>Report and block in one tap, with privacy controls for who can reach you.</p>
+          </li>
+          <li class="card card--interactive feature-card">
+            <span class="icon-badge"><svg class="icon" aria-hidden="true"><use href="assets/icons/sprite.svg#sparkles"/></svg></span>
+            <h3>Interest-Based Matching</h3>
+            <p>Share your vibe and we'll prioritise people who love the same things.</p>
+          </li>
+          <li class="card card--interactive feature-card">
+            <span class="icon-badge"><svg class="icon" aria-hidden="true"><use href="assets/icons/sprite.svg#globe"/></svg></span>
+            <h3>Global Community</h3>
+            <p>Meet people from around the world and filter by the languages you speak.</p>
+          </li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- How it works -->
+    <section class="section section--blush" id="how-it-works" aria-labelledby="how-title">
+      <div class="container">
+        <header class="section-header">
+          <p class="eyebrow">How it works</p>
+          <h2 id="how-title">Three steps to your next conversation</h2>
+        </header>
+
+        <ol class="steps" role="list">
+          <li class="card step">
+            <span class="step__number" aria-hidden="true">1</span>
+            <h3>Join as a guest or sign in</h3>
+            <p>Jump straight in, or create an account to keep friends and chats.</p>
+          </li>
+          <li class="card step">
+            <span class="step__number" aria-hidden="true">2</span>
+            <h3>Choose your interests and chat mode</h3>
+            <p>Pick your vibe, then choose text or video.</p>
+          </li>
+          <li class="card step">
+            <span class="step__number" aria-hidden="true">3</span>
+            <h3>Meet someone and start talking</h3>
+            <p>Say hi! Skip to the next match whenever you like.</p>
+          </li>
+        </ol>
+      </div>
+    </section>
+
+    <!-- CTA -->
+    <section class="section" aria-labelledby="cta-title">
+      <div class="container">
+        <div class="cta">
+          <div>
+            <h2 id="cta-title">Ready to meet someone new?</h2>
+            <p>Your next favourite conversation is one tap away.</p>
+          </div>
+          <div class="cta__actions">
+            <a class="btn btn--secondary btn--lg" href="chat.html?mode=random" data-start="text">Start Text Chat</a>
+            <a class="btn btn--outline-light btn--lg" href="video.html" data-start="video">Start Video Chat</a>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <div class="site-footer__grid">
+        <div class="site-footer__about">
+          <a class="brand" href="index.html" aria-label="JoloMeet home">
+            <span class="brand__mark"><svg class="icon icon--filled" aria-hidden="true"><use href="assets/icons/sprite.svg#heart"/></svg></span>
+            <span>Jolo<span class="brand__accent">Meet</span></span>
+          </a>
+          <p>Random text and video chat for meeting new people who share your interests.</p>
+        </div>
+        <nav aria-labelledby="footer-company">
+          <h2 id="footer-company">Company</h2>
+          <ul class="site-footer__links" role="list">
+            <li><a href="about.html">About JoloMeet</a></li>
+            <li><a href="contact.html">Contact</a></li>
+          </ul>
+        </nav>
+        <nav aria-labelledby="footer-support">
+          <h2 id="footer-support">Support</h2>
+          <ul class="site-footer__links" role="list">
+            <li><a href="help.html">Help Center</a></li>
+            <li><a href="safety.html">Safety Center</a></li>
+            <li><a href="guidelines.html">Community Guidelines</a></li>
+          </ul>
+        </nav>
+        <nav aria-labelledby="footer-legal">
+          <h2 id="footer-legal">Legal</h2>
+          <ul class="site-footer__links" role="list">
+            <li><a href="privacy.html">Privacy Policy</a></li>
+            <li><a href="terms.html">Terms of Service</a></li>
+          </ul>
+        </nav>
+      </div>
+      <div class="site-footer__bottom">
+        <p>&copy; <span data-year></span> JoloMeet</p>
+        <p>Made with <span aria-label="love">&#10084;</span> for new friendships</p>
+      </div>
+    </div>
+  </footer>
+
+  <nav class="bottom-nav" aria-label="Quick navigation">
+    <ul class="bottom-nav__list" role="list">
+      <li><a class="bottom-nav__link" href="index.html" data-nav="home"><svg class="icon" aria-hidden="true"><use href="assets/icons/sprite.svg#home"/></svg>Home</a></li>
+      <li><a class="bottom-nav__link" href="chat.html" data-nav="chat"><svg class="icon" aria-hidden="true"><use href="assets/icons/sprite.svg#chat"/></svg>Chat</a></li>
+      <li><a class="bottom-nav__link" href="video.html" data-nav="video"><svg class="icon" aria-hidden="true"><use href="assets/icons/sprite.svg#video"/></svg>Video</a></li>
+      <li><a class="bottom-nav__link" href="explore.html" data-nav="explore"><svg class="icon" aria-hidden="true"><use href="assets/icons/sprite.svg#compass"/></svg>Explore</a></li>
+      <li><a class="bottom-nav__link" href="profile.html" data-nav="profile"><svg class="icon" aria-hidden="true"><use href="assets/icons/sprite.svg#user"/></svg>Profile</a></li>
+    </ul>
+  </nav>
+
+  <div class="toast-region" id="toast-region" role="status" aria-live="polite"></div>
+</body>
+</html>
