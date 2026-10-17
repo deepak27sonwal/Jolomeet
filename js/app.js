@@ -1,11 +1,59 @@
 // Shared bootstrapping and small utilities used by every page.
 import { initNavigation } from './navigation.js';
+import { getSession, signOut } from './api.js';
 
 export function initApp() {
   initNavigation();
+  initAuthHeader();
   document.querySelectorAll('[data-year]').forEach((el) => {
     el.textContent = String(new Date().getFullYear());
   });
+}
+
+/** Swaps the Login / Get Started buttons for account actions once signed in. */
+async function initAuthHeader() {
+  let session;
+  try {
+    session = await getSession();
+  } catch {
+    return; // keep the signed-out header
+  }
+  if (!session) return;
+
+  const guest = session.user.is_anonymous;
+  const primary = guest
+    ? { label: 'Create Account', href: 'register.html' }
+    : { label: 'My Profile', href: 'profile.html' };
+
+  const build = (extraClass = '') => {
+    const link = document.createElement('a');
+    link.className = `btn btn--secondary ${extraClass}`;
+    link.href = primary.href;
+    link.textContent = primary.label;
+    const logout = document.createElement('button');
+    logout.type = 'button';
+    logout.className = `btn btn--primary ${extraClass}`;
+    logout.textContent = 'Log Out';
+    logout.addEventListener('click', handleLogout);
+    return [link, logout];
+  };
+
+  const desktop = document.querySelector('.site-header__actions');
+  desktop?.querySelectorAll('.btn').forEach((el) => el.remove());
+  desktop?.append(...build());
+  document.querySelector('.mobile-menu__actions')?.replaceChildren(...build('btn--lg btn--block'));
+}
+
+async function handleLogout(event) {
+  const button = event.currentTarget;
+  button.disabled = true;
+  try {
+    await signOut();
+    window.location.assign('index.html');
+  } catch {
+    button.disabled = false;
+    toast("Couldn't log you out. Please try again.", { type: 'error' });
+  }
 }
 
 /** Shows a short message. type: 'info' | 'success' | 'error'. */

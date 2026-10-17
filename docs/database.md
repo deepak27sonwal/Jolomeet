@@ -73,7 +73,10 @@ Errors use custom SQLSTATE codes that the UI can map to messages:
 
 ## Things the schema expects from the project settings
 
-1. **Auth**: enable Email and **Anonymous sign-ins** (for guests). Sign-up should pass `options.data = { display_name, birth_date, accepted_terms: true }`. Under-18 birth dates are rejected.
+1. **Auth** (Dashboard → Authentication):
+   - Enable the **Email** provider (keep "Confirm email" on) and **Anonymous sign-ins** (used by "Continue as Guest").
+   - **URL Configuration**: set the Site URL to where the site is hosted and add `…/login.html` and `…/reset-password.html` to the redirect allow-list. The confirmation and password-reset emails link back to those pages.
+   - The register page sends `options.data = { display_name, birth_date, accepted_terms: 'true' }`; under-18 birth dates are rejected by the database trigger as well as the form.
 2. **Realtime**: turn off "Allow public access" under Realtime settings so only private, authorized channels work.
 3. **Edge Functions** (not SQL; they need the service role key, which must never reach the browser):
    - `turn-credentials`: returns short-lived TURN credentials (Cloudflare Calls, Twilio, Metered or your own coturn) to signed-in users.
