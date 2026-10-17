@@ -9,6 +9,8 @@
   --color-secondary: #FF4F9A;
   --color-accent: #8B2CF5;            /* purple, used for video actions */
   --color-accent-pressed: #7420D6;
+  --color-accent-soft: #F1E6FF;       /* light purple for nav hover/active backgrounds */
+  --color-nav: #5B3A9E;               /* purple for navigation links and icons */
   --color-border: #F8D3E4;
   --color-selected: #FFE0EE;
   --color-text: #1E1636;
