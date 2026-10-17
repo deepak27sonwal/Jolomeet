@@ -73,6 +73,8 @@ ul[role="list"], ol[role="list"] {
   color: var(--color-text);
 }
 
+[hidden] { display: none !important; }
+
 .sr-only {
   position: absolute;
   width: 1px;

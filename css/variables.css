@@ -1,20 +1,33 @@
 /* JoloMeet design tokens. Every page imports this first. */
 :root {
-  /* Brand palette: white + pink only */
+  /* Brand palette: hot pink with a purple accent, on white and soft pink */
   --color-bg: #FFFFFF;
-  --color-bg-soft: #FCEAF3;
-  --color-bg-blush: #FFF5FA;
-  --color-primary: #C90068;
-  --color-primary-pressed: #A90055;
-  --color-secondary: #E83E8C;
-  --color-border: #F3C8DC;
-  --color-selected: #FAD6E7;
-  --color-text: #291421;
-  --color-text-muted: #755C6A;
+  --color-bg-soft: #FFF0F6;
+  --color-bg-blush: #FFF7FB;
+  --color-primary: #E91E78;
+  --color-primary-pressed: #C70F62;
+  --color-secondary: #FF4F9A;
+  --color-accent: #8B2CF5;            /* purple, used for video actions */
+  --color-accent-pressed: #7420D6;
+  --color-border: #F8D3E4;
+  --color-selected: #FFE0EE;
+  --color-text: #1E1636;
+  --color-text-muted: #6B6380;
   --color-on-primary: #FFFFFF;
+  --color-online: #22C55E;            /* online status only */
+
+  --gradient-primary: linear-gradient(135deg, #FF4F9A 0%, #E91E78 55%, #D10F6B 100%);
+  --gradient-primary-hover: linear-gradient(135deg, #F7428F 0%, #D7146C 55%, #BC0B5F 100%);
+  --gradient-video: linear-gradient(135deg, #D63AE0 0%, #A030F0 50%, #7C3AED 100%);
+  --gradient-video-hover: linear-gradient(135deg, #C42FCE 0%, #8E26DC 50%, #6A2FD6 100%);
+  --gradient-page: radial-gradient(70% 60% at 90% 0%, #FFE0EE 0%, transparent 60%),
+                   radial-gradient(50% 50% at 0% 30%, #FFF0F6 0%, transparent 70%),
+                   #FFFFFF;
+  --gradient-card: linear-gradient(160deg, #FFE3F0 0%, #F8D9FF 100%);
 
   /* Typography */
   --font-sans: "Inter", "Manrope", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-script: "Caveat", "Segoe Script", cursive;
   --text-xs: 0.75rem;
   --text-sm: 0.875rem;
   --text-base: 1rem;
@@ -22,8 +35,8 @@
   --text-xl: clamp(1.25rem, 1.1rem + 0.6vw, 1.5rem);
   --text-2xl: clamp(1.5rem, 1.2rem + 1.2vw, 2rem);
   --text-3xl: clamp(1.875rem, 1.4rem + 2vw, 2.75rem);
-  --text-hero: clamp(2.25rem, 1.5rem + 3.6vw, 4rem);
-  --leading-tight: 1.15;
+  --text-hero: clamp(2.5rem, 1.7rem + 3vw, 3.75rem);
+  --leading-tight: 1.08;
   --leading-normal: 1.6;
   --weight-regular: 400;
   --weight-medium: 500;
@@ -42,20 +55,21 @@
   --space-10: 2.5rem;
   --space-12: 3rem;
   --space-16: 4rem;
-  --space-section: clamp(3.5rem, 2.5rem + 4vw, 6rem);
+  --space-section: clamp(3rem, 2rem + 4vw, 5.5rem);
 
   /* Radii */
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 20px;
-  --radius-xl: 28px;
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 22px;
+  --radius-xl: 30px;
   --radius-pill: 999px;
 
   /* Shadows (pink-tinted) */
-  --shadow-sm: 0 1px 2px rgba(169, 0, 85, 0.06), 0 1px 3px rgba(169, 0, 85, 0.06);
-  --shadow-md: 0 4px 14px rgba(169, 0, 85, 0.08);
-  --shadow-lg: 0 18px 40px rgba(169, 0, 85, 0.12);
-  --shadow-button: 0 6px 16px rgba(201, 0, 104, 0.28);
+  --shadow-sm: 0 1px 2px rgba(233, 30, 120, 0.05), 0 2px 8px rgba(233, 30, 120, 0.05);
+  --shadow-md: 0 8px 24px rgba(233, 30, 120, 0.10);
+  --shadow-lg: 0 20px 48px rgba(233, 30, 120, 0.16);
+  --shadow-button: 0 10px 24px rgba(233, 30, 120, 0.32);
+  --shadow-button-video: 0 10px 24px rgba(139, 44, 245, 0.30);
   --focus-ring: 0 0 0 3px #FFFFFF, 0 0 0 5px var(--color-primary);
 
   /* Icons */
@@ -70,9 +84,9 @@
   --duration-slow: 320ms;
 
   /* Layout */
-  --container-max: 1200px;
+  --container-max: 1240px;
   --container-gutter: clamp(1rem, 0.5rem + 2vw, 2rem);
-  --header-height: 68px;
+  --header-height: 72px;
   --bottom-nav-height: 64px;
   --safe-bottom: env(safe-area-inset-bottom, 0px);
 
