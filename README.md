@@ -23,6 +23,7 @@ python3 -m http.server 8000
 - `register.html`: create an account (email confirmation); a signed-in guest upgrades their guest account here and keeps their chats
 - `reset-password.html`: set a new password from the emailed link (`?finish=1`: an upgraded guest chooses their first password)
 - `profile.html`: your profile (edit photo, cover, bio, interests, languages, privacy) or `profile.html?id=<user id>` for someone else's (chat, video, connect, report, block)
+- `audio.html`: random voice-only calls (microphone permission, matching on your interests, mute, next, end, report, block); peer-to-peer WebRTC with signalling over a private Supabase Realtime channel
 - `chat.html`: conversations, message requests, favorites, random text matching (`chat.html?mode=random`) and a chat by id (`chat.html?c=<conversation id>`); realtime messages, typing, read receipts, photos, report and block
 
 ## Frontend structure
@@ -33,5 +34,6 @@ python3 -m http.server 8000
 - `css/motion.css`, `js/motion.js`, `js/page-transition.js`: pages slide in from the right (back slides the other way), scroll reveals and hover effects (off when the device asks for reduced motion)
 - `js/config.js`: public Supabase URL and publishable key (safe for browsers; all data is protected by RLS)
 - `js/api.js`: every Supabase call goes through here
+- `js/rtc.js`: WebRTC connection and signalling protocol shared by calls; STUN/TURN servers are in `js/config.js`
 - `js/app.js`, `js/navigation.js`: shared setup, toasts, header/menu behaviour, signed-in header
 - `js/auth.js`, `js/validation.js`: login/register/reset flows and form validation

@@ -424,6 +424,24 @@ export async function joinTypingChannel(conversationId, onTyping) {
   };
 }
 
+/**
+ * Private broadcast channel shared by the two people in a match session, used
+ * to exchange WebRTC offers, answers and network candidates. Only the session's
+ * participants can join (Realtime authorization in the database).
+ */
+export async function joinMatchChannel(sessionId, onSignal, onStatus) {
+  await authorizeRealtime();
+  const channel = supabase.channel(`match:${sessionId}`, {
+    config: { private: true, broadcast: { self: false, ack: false } },
+  });
+  channel.on('broadcast', { event: 'signal' }, ({ payload }) => onSignal(payload))
+    .subscribe((status) => onStatus?.(status));
+  return {
+    send: (payload) => channel.send({ type: 'broadcast', event: 'signal', payload }),
+    leave: () => supabase.removeChannel(channel),
+  };
+}
+
 export function leaveChannel(channel) {
   if (channel) supabase.removeChannel(channel);
 }

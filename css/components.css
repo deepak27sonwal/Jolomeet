@@ -73,6 +73,18 @@
 
 .btn--hero .btn__icon .icon { width: 20px; height: 20px; }
 
+/* white with purple text for voice calls, next to the two gradient buttons */
+.btn--audio {
+  border-color: #E4D3FF;
+  background: var(--color-bg);
+  color: var(--color-nav);
+  box-shadow: var(--shadow-sm);
+}
+
+.btn--audio:hover,
+.btn--audio:active { border-color: var(--color-accent); background: var(--color-accent-soft); color: var(--color-heading); }
+.btn--hero.btn--audio .btn__icon { background: var(--color-accent-soft); color: var(--color-accent); }
+
 .btn__text {
   display: grid;
   gap: 2px;
