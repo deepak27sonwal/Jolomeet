@@ -22,8 +22,8 @@ showOnlineCount();
 
 async function showOnlineCount() {
   try {
-    const count = await fetchOnlineCount();
-    if (!count) return; // never show "0 online" or a made-up number
+    const count = Number(await fetchOnlineCount());
+    if (!Number.isInteger(count) || count <= 0) return; // never show "0 online" or a made-up number
     const el = document.getElementById('online-count');
     el.querySelector('[data-online-number]').textContent = count.toLocaleString();
     el.hidden = false;
