@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 500">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#FFD6EA"/>
+      <stop offset="1" stop-color="#F3D2FF"/>
+    </linearGradient>
+    <linearGradient id="top" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#FF4F9A"/>
+      <stop offset="1" stop-color="#E91E78"/>
+    </linearGradient>
+  </defs>
+  <rect width="400" height="500" fill="url(#bg)"/>
+  <circle cx="330" cy="80" r="70" fill="#FFFFFF" opacity=".35"/>
+  <circle cx="60" cy="420" r="90" fill="#FFFFFF" opacity=".25"/>
+  <!-- hair (back) -->
+  <path d="M96 240c-6-104 46-170 108-170s116 60 108 170c-4 60 14 120 28 170H66c18-52 34-112 30-170z" fill="#3A2218"/>
+  <!-- shoulders / top -->
+  <path d="M40 500c8-92 76-140 164-140s156 48 164 140z" fill="url(#top)"/>
+  <path d="M150 372c18 20 90 20 108 0" fill="none" stroke="#FFFFFF" stroke-width="6" stroke-linecap="round" opacity=".6"/>
+  <!-- neck -->
+  <rect x="176" y="292" width="56" height="78" rx="24" fill="#E8B48E"/>
+  <!-- face -->
+  <ellipse cx="204" cy="222" rx="82" ry="96" fill="#F1C49F"/>
+  <!-- hair (fringe) -->
+  <path d="M120 214c-2-74 40-120 88-120s92 40 86 118c-16-40-50-66-92-66-38 0-66 22-82 68z" fill="#3A2218"/>
+  <!-- brows + eyes (smiling) -->
+  <path d="M152 186c10-8 26-8 34 0M222 186c10-8 26-8 34 0" fill="none" stroke="#3A2218" stroke-width="5" stroke-linecap="round"/>
+  <path d="M154 214c8-10 24-10 32 0M222 214c8-10 24-10 32 0" fill="none" stroke="#1E1636" stroke-width="6" stroke-linecap="round"/>
+  <!-- blush -->
+  <ellipse cx="150" cy="246" rx="16" ry="10" fill="#FF4F9A" opacity=".3"/>
+  <ellipse cx="258" cy="246" rx="16" ry="10" fill="#FF4F9A" opacity=".3"/>
+  <!-- big smile -->
+  <path d="M164 252c10 40 70 40 80 0z" fill="#9E1B4E"/>
+  <path d="M172 254h64c-2 8-6 12-10 14h-44c-4-2-8-6-10-14z" fill="#FFFFFF"/>
+  <path d="M186 280c10 8 26 8 36 0" fill="#FF7FA8"/>
+  <!-- earrings -->
+  <circle cx="124" cy="262" r="6" fill="#FFFFFF"/>
+  <circle cx="284" cy="262" r="6" fill="#FFFFFF"/>
+</svg>

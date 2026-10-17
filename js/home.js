@@ -1,10 +1,14 @@
 // Homepage: interest picker. Selected interests are remembered locally and
 // sent with the match request by the chat and video pages.
 import { initApp, storage } from './app.js';
-import { fetchInterests } from './api.js';
+import { fetchInterests, fetchOnlineCount } from './api.js';
 import { STORAGE_KEYS } from './config.js';
 
 const MAX_INTERESTS = 10;
+// interests with a matching icon in the sprite; others fall back to a sparkle
+const INTEREST_ICONS = new Set([
+  'music', 'gaming', 'movies', 'travel', 'fitness', 'memes', 'food', 'photography', 'anime', 'sports',
+]);
 const SPRITE = 'assets/icons/sprite.svg';
 
 const chipList = document.getElementById('interest-chips');
@@ -14,6 +18,19 @@ let selected = new Set(storage.get(STORAGE_KEYS.interests, []));
 
 initApp();
 loadInterests();
+showOnlineCount();
+
+async function showOnlineCount() {
+  try {
+    const count = await fetchOnlineCount();
+    if (!count) return; // never show "0 online" or a made-up number
+    const el = document.getElementById('online-count');
+    el.querySelector('[data-online-number]').textContent = count.toLocaleString();
+    el.hidden = false;
+  } catch (error) {
+    console.warn('Online count unavailable', error);
+  }
+}
 
 async function loadInterests() {
   chipList.setAttribute('aria-busy', 'true');
@@ -45,7 +62,7 @@ function renderChips(interests) {
     const more = document.createElement('button');
     more.type = 'button';
     more.className = 'chip chip--more';
-    more.innerHTML = `<svg class="icon icon--sm" aria-hidden="true"><use href="${SPRITE}#plus"/></svg>More`;
+    more.innerHTML = `<svg class="icon icon--sm" aria-hidden="true"><use href="${SPRITE}#more"/></svg>More`;
     more.addEventListener('click', () => {
       const chips = hiddenExtra.map(createChip);
       more.replaceWith(...chips);
@@ -63,7 +80,8 @@ function createChip({ slug, label }) {
   chip.className = 'chip';
   chip.dataset.slug = slug;
   chip.setAttribute('aria-pressed', String(selected.has(slug)));
-  chip.innerHTML = `<svg class="icon chip__check" aria-hidden="true"><use href="${SPRITE}#check"/></svg>`;
+  const icon = INTEREST_ICONS.has(slug) ? `i-${slug}` : 'sparkles';
+  chip.innerHTML = `<svg class="icon chip__icon" aria-hidden="true"><use href="${SPRITE}#${icon}"/></svg>`;
   chip.append(label);
   chip.addEventListener('click', () => toggleInterest(chip));
   return chip;

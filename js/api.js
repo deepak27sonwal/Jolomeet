@@ -17,3 +17,10 @@ export async function fetchInterests() {
   if (error) throw error;
   return data;
 }
+
+/** Live count of people online who allow their status to be shown. */
+export async function fetchOnlineCount() {
+  const { data, error } = await supabase.rpc('count_online_users');
+  if (error) throw error;
+  return data;
+}
