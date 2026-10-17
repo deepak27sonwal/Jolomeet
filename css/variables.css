@@ -1,0 +1,85 @@
+/* JoloMeet design tokens. Every page imports this first. */
+:root {
+  /* Brand palette: white + pink only */
+  --color-bg: #FFFFFF;
+  --color-bg-soft: #FCEAF3;
+  --color-bg-blush: #FFF5FA;
+  --color-primary: #C90068;
+  --color-primary-pressed: #A90055;
+  --color-secondary: #E83E8C;
+  --color-border: #F3C8DC;
+  --color-selected: #FAD6E7;
+  --color-text: #291421;
+  --color-text-muted: #755C6A;
+  --color-on-primary: #FFFFFF;
+
+  /* Typography */
+  --font-sans: "Inter", "Manrope", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-lg: 1.125rem;
+  --text-xl: clamp(1.25rem, 1.1rem + 0.6vw, 1.5rem);
+  --text-2xl: clamp(1.5rem, 1.2rem + 1.2vw, 2rem);
+  --text-3xl: clamp(1.875rem, 1.4rem + 2vw, 2.75rem);
+  --text-hero: clamp(2.25rem, 1.5rem + 3.6vw, 4rem);
+  --leading-tight: 1.15;
+  --leading-normal: 1.6;
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --weight-bold: 700;
+  --weight-extrabold: 800;
+
+  /* Spacing (4px base) */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+  --space-16: 4rem;
+  --space-section: clamp(3.5rem, 2.5rem + 4vw, 6rem);
+
+  /* Radii */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 20px;
+  --radius-xl: 28px;
+  --radius-pill: 999px;
+
+  /* Shadows (pink-tinted) */
+  --shadow-sm: 0 1px 2px rgba(169, 0, 85, 0.06), 0 1px 3px rgba(169, 0, 85, 0.06);
+  --shadow-md: 0 4px 14px rgba(169, 0, 85, 0.08);
+  --shadow-lg: 0 18px 40px rgba(169, 0, 85, 0.12);
+  --shadow-button: 0 6px 16px rgba(201, 0, 104, 0.28);
+  --focus-ring: 0 0 0 3px #FFFFFF, 0 0 0 5px var(--color-primary);
+
+  /* Icons */
+  --icon-sm: 18px;
+  --icon-md: 22px;
+  --icon-lg: 28px;
+
+  /* Motion */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --duration-fast: 120ms;
+  --duration-base: 200ms;
+  --duration-slow: 320ms;
+
+  /* Layout */
+  --container-max: 1200px;
+  --container-gutter: clamp(1rem, 0.5rem + 2vw, 2rem);
+  --header-height: 68px;
+  --bottom-nav-height: 64px;
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+
+  /* Layers */
+  --z-header: 50;
+  --z-bottom-nav: 50;
+  --z-menu: 60;
+  --z-modal: 80;
+  --z-toast: 90;
+}
