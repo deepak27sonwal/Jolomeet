@@ -53,12 +53,12 @@
 
 /* large two-line call-to-action: icon tile + title + subtitle */
 .btn--hero {
-  justify-content: flex-start;
+  justify-content: center;
   gap: var(--space-3);
   min-height: 68px;
-  padding: var(--space-2) var(--space-6) var(--space-2) var(--space-2);
+  padding: var(--space-2) var(--space-6);
   border-radius: var(--radius-lg);
-  text-align: left;
+  text-align: center;
   line-height: 1.2;
 }
 
