@@ -263,9 +263,65 @@ body.menu-open { overflow: hidden; }
 
 /* ---------- Footer ---------- */
 .site-footer {
+  position: relative;
+  overflow: hidden;
   padding-block: var(--space-12) var(--space-8);
-  background: var(--color-bg-blush);
+  background: linear-gradient(180deg, var(--color-bg-soft) 0%, var(--color-selected) 100%);
   border-top: 1px solid var(--color-border);
+}
+
+.site-footer > .container { position: relative; z-index: 1; }
+
+.footer-love { color: var(--color-primary); }
+
+/* Decorative hearts drifting up behind the footer content */
+.footer-hearts {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.footer-hearts svg {
+  position: absolute;
+  left: var(--x);
+  bottom: -40px;
+  width: var(--size);
+  height: var(--size);
+  color: var(--c);
+  opacity: 0;
+  animation: heart-float var(--dur) linear var(--delay) infinite;
+}
+
+.footer-hearts svg:nth-child(1) { --x: 4%; --size: 18px; --dur: 11s; --delay: 0s; --c: var(--color-primary); --rest: 20%; }
+.footer-hearts svg:nth-child(2) { --x: 12%; --size: 28px; --dur: 14s; --delay: -6s; --c: var(--color-secondary); --rest: 62%; }
+.footer-hearts svg:nth-child(3) { --x: 20%; --size: 14px; --dur: 9s; --delay: -2s; --c: var(--color-accent); --rest: 38%; }
+.footer-hearts svg:nth-child(4) { --x: 29%; --size: 22px; --dur: 13s; --delay: -9s; --c: var(--color-primary); --rest: 78%; }
+.footer-hearts svg:nth-child(5) { --x: 37%; --size: 16px; --dur: 10s; --delay: -4s; --c: var(--color-secondary); --rest: 15%; }
+.footer-hearts svg:nth-child(6) { --x: 45%; --size: 32px; --dur: 16s; --delay: -11s; --c: var(--color-accent); --rest: 55%; }
+.footer-hearts svg:nth-child(7) { --x: 53%; --size: 18px; --dur: 12s; --delay: -1s; --c: var(--color-primary); --rest: 30%; }
+.footer-hearts svg:nth-child(8) { --x: 61%; --size: 24px; --dur: 15s; --delay: -7s; --c: var(--color-secondary); --rest: 72%; }
+.footer-hearts svg:nth-child(9) { --x: 69%; --size: 14px; --dur: 9s; --delay: -5s; --c: var(--color-accent); --rest: 44%; }
+.footer-hearts svg:nth-child(10) { --x: 76%; --size: 26px; --dur: 13s; --delay: -3s; --c: var(--color-primary); --rest: 18%; }
+.footer-hearts svg:nth-child(11) { --x: 83%; --size: 18px; --dur: 11s; --delay: -8s; --c: var(--color-secondary); --rest: 66%; }
+.footer-hearts svg:nth-child(12) { --x: 90%; --size: 30px; --dur: 17s; --delay: -12s; --c: var(--color-accent); --rest: 36%; }
+.footer-hearts svg:nth-child(13) { --x: 96%; --size: 16px; --dur: 10s; --delay: -6s; --c: var(--color-primary); --rest: 82%; }
+.footer-hearts svg:nth-child(14) { --x: 8%; --size: 20px; --dur: 14s; --delay: -10s; --c: var(--color-accent); --rest: 50%; }
+
+@keyframes heart-float {
+  0%   { transform: translate(0, 0) rotate(-12deg) scale(0.8); opacity: 0; }
+  10%  { opacity: 0.45; }
+  35%  { transform: translate(14px, -160px) rotate(8deg) scale(1); }
+  65%  { transform: translate(-12px, -300px) rotate(-6deg) scale(1.05); opacity: 0.35; }
+  100% { transform: translate(8px, -460px) rotate(10deg) scale(0.9); opacity: 0; }
+}
+
+/* No motion: keep the hearts as a still, scattered pattern */
+@media (prefers-reduced-motion: reduce) {
+  .footer-hearts svg {
+    bottom: var(--rest);
+    animation: none;
+    opacity: 0.25;
+  }
 }
 
 .site-footer__grid {
