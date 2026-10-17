@@ -1,1 +1,24 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8B2CF5"/><stop offset="1" stop-color="#E91E78"/></linearGradient></defs><rect width="32" height="32" rx="9" fill="url(#g)"/><path d="M24.4 9.6a4.6 4.6 0 0 0-6.5 0L16 11.5l-1.9-1.9a4.6 4.6 0 1 0-6.5 6.5L16 24.4l8.4-8.3a4.6 4.6 0 0 0 0-6.5z" fill="#FFF"/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
+  <!-- JoloMeet mark: a heart-shaped speech bubble with typing dots -->
+  <defs>
+    <linearGradient id="jm-tile" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#8B2CF5"/>
+      <stop offset="0.55" stop-color="#C026D3"/>
+      <stop offset="1" stop-color="#E91E78"/>
+    </linearGradient>
+    <linearGradient id="jm-dots" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#8B2CF5"/>
+      <stop offset="1" stop-color="#E91E78"/>
+    </linearGradient>
+  </defs>
+  <rect width="48" height="48" rx="14" fill="url(#jm-tile)"/>
+  <!-- heart bubble with a chat tail on the lower left -->
+  <path d="M24 37.5C22 36 11 29 11 20.5c0-4.7 3.6-8 7.8-8 2.4 0 4.2 1.2 5.2 2.9 1-1.7 2.8-2.9 5.2-2.9 4.2 0 7.8 3.3 7.8 8C37 29 26 36 24 37.5z" fill="#FFFFFF"/>
+  <path d="M13.2 26.5 9 36.5l9.6-4.6z" fill="#FFFFFF"/>
+  <!-- typing dots -->
+  <circle cx="18.5" cy="22" r="2.2" fill="url(#jm-dots)"/>
+  <circle cx="24" cy="22" r="2.2" fill="url(#jm-dots)"/>
+  <circle cx="29.5" cy="22" r="2.2" fill="url(#jm-dots)"/>
+  <!-- sparkle -->
+  <path d="M39 6.5l1 2.6 2.6 1-2.6 1-1 2.6-1-2.6-2.6-1 2.6-1z" fill="#FFFFFF" opacity=".9"/>
+</svg>

@@ -71,15 +71,16 @@
 
 .brand:hover { color: var(--color-heading); }
 
-.brand__mark {
-  display: grid;
-  place-items: center;
-  width: 36px;
-  height: 36px;
-  color: var(--color-accent);
+.brand__logo {
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  box-shadow: 0 6px 16px rgba(139, 44, 245, 0.28);
+  transition: transform var(--duration-base) var(--ease-out);
 }
 
-.brand__mark .icon { width: 32px; height: 32px; stroke-width: 2.6; }
+.brand:hover .brand__logo { transform: rotate(-6deg) scale(1.05); }
+
 .brand__accent {
   background: linear-gradient(120deg, var(--color-primary) 0%, var(--color-accent) 100%);
   -webkit-background-clip: text;
