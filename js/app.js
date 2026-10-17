@@ -1,6 +1,6 @@
 // Shared bootstrapping and small utilities used by every page.
 import { initNavigation } from './navigation.js';
-import { getSession, signOut } from './api.js';
+import { getSession, signOut, touchPresence } from './api.js';
 
 export function initApp() {
   initNavigation();
@@ -19,6 +19,7 @@ async function initAuthHeader() {
     return; // keep the signed-out header
   }
   if (!session) return;
+  startPresenceHeartbeat();
 
   const guest = session.user.is_anonymous;
   const primary = guest
@@ -42,6 +43,18 @@ async function initAuthHeader() {
   desktop?.querySelectorAll('.btn').forEach((el) => el.remove());
   desktop?.append(...build());
   document.querySelector('.mobile-menu__actions')?.replaceChildren(...build('btn--lg btn--block'));
+}
+
+const HEARTBEAT_MS = 30_000;
+
+/** Keeps last_seen_at fresh while the tab is visible. */
+function startPresenceHeartbeat() {
+  const beat = () => {
+    if (document.visibilityState === 'visible') touchPresence().catch(() => {});
+  };
+  beat();
+  setInterval(beat, HEARTBEAT_MS);
+  document.addEventListener('visibilitychange', beat);
 }
 
 async function handleLogout(event) {

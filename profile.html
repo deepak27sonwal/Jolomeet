@@ -167,54 +167,6 @@
     </form>
   </dialog>
 
-  <!-- Report -->
-  <dialog class="modal modal--sm" id="report-dialog" aria-labelledby="report-title">
-    <form id="report-form" method="dialog" novalidate>
-      <header class="modal__header">
-        <h2 id="report-title">Report</h2>
-        <button class="icon-button" type="button" data-close aria-label="Close"><svg class="icon" aria-hidden="true"><use href="assets/icons/sprite.svg#close"/></svg></button>
-      </header>
-      <div class="modal__body">
-        <p class="profile-muted">Reports are confidential. Our moderators review every one.</p>
-        <div class="alert" id="report-alert" role="alert" hidden></div>
-        <div class="field">
-          <label class="field__label" for="report-reason">Reason</label>
-          <select class="input input--plain" id="report-reason" required aria-describedby="report-reason-error">
-            <option value="">Choose a reason</option>
-            <option value="spam">Spam or scam</option>
-            <option value="harassment">Harassment or bullying</option>
-            <option value="hate">Hate speech</option>
-            <option value="nudity">Nudity or sexual content</option>
-            <option value="violence">Violence or threats</option>
-            <option value="underage">Appears to be under 18</option>
-            <option value="impersonation">Pretending to be someone else</option>
-            <option value="other">Something else</option>
-          </select>
-          <p class="field__error" id="report-reason-error"></p>
-        </div>
-        <div class="field">
-          <label class="field__label" for="report-details">Details <span class="profile-muted">(optional)</span></label>
-          <textarea class="input input--plain" id="report-details" maxlength="1000" rows="3" placeholder="What happened?"></textarea>
-        </div>
-        <label class="checkbox"><input type="checkbox" id="report-block" checked> <span>Also block this person</span></label>
-      </div>
-      <footer class="modal__footer">
-        <button class="btn btn--secondary" type="button" data-close>Cancel</button>
-        <button class="btn btn--danger" type="submit">Submit Report</button>
-      </footer>
-    </form>
-  </dialog>
-
-  <!-- Confirmation -->
-  <dialog class="modal modal--sm" id="confirm-dialog" aria-labelledby="confirm-title" aria-describedby="confirm-message">
-    <header class="modal__header"><h2 id="confirm-title"></h2></header>
-    <div class="modal__body"><p id="confirm-message" class="profile-muted"></p></div>
-    <footer class="modal__footer">
-      <button class="btn btn--secondary" type="button" data-confirm="no">Cancel</button>
-      <button class="btn btn--danger" type="button" data-confirm="yes" id="confirm-yes"></button>
-    </footer>
-  </dialog>
-
   <footer class="site-footer">
     <div class="footer-hearts" aria-hidden="true">
       <svg class="icon icon--filled"><use href="assets/icons/sprite.svg#heart"/></svg>

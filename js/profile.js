@@ -3,8 +3,8 @@
 import { initApp, toast } from './app.js';
 import * as api from './api.js';
 import { validateDisplayName } from './validation.js';
-
-const SPRITE = 'assets/icons/sprite.svg';
+import { icon, esc, initials, timeAgo, setLoading, friendlyError, avatarHtml as avatar } from './ui.js';
+import { confirmAction, openReportDialog } from './dialogs.js';
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const MAX_INTERESTS = 10;
 const MAX_LANGUAGES = 5;
@@ -179,9 +179,7 @@ function presenceHtml(p) {
 }
 
 function avatarHtml(p, extraClass = '') {
-  const url = api.publicImageUrl('avatars', p.avatar_path);
-  const inner = url ? `<img src="${esc(url)}" alt="">` : esc(initials(p.display_name));
-  return `<span class="avatar ${extraClass}" role="img" aria-label="${esc(p.display_name)}">${inner}</span>`;
+  return avatar(p.display_name, api.publicImageUrl('avatars', p.avatar_path), extraClass);
 }
 
 function renderState(kind, retry) {
@@ -224,7 +222,7 @@ function bindActions() {
     'remove-connection': () => handleRemoveConnection('Remove connection?', `You and ${profile.display_name} will no longer be connected.`, 'Remove'),
     accept: () => handleRespond(true),
     decline: () => handleRespond(false),
-    report: openReportDialog,
+    report: handleReport,
     block: handleBlock,
   };
   root.querySelectorAll('[data-action]').forEach((btn) => {
@@ -306,45 +304,17 @@ async function handleUnblock(event) {
   });
 }
 
-/* ================= Report dialog ================= */
 
-function openReportDialog() {
-  const dialog = document.getElementById('report-dialog');
-  document.getElementById('report-title').textContent = `Report ${profile.display_name}`;
-  document.getElementById('report-form').reset();
-  setFieldError('report-reason', '');
-  hideAlert('report-alert');
-  dialog.showModal();
-}
-
-async function submitReport(event) {
-  event.preventDefault();
-  const reason = document.getElementById('report-reason');
-  if (!reason.value) {
-    setFieldError('report-reason', 'Choose a reason.');
-    reason.focus();
-    return;
-  }
-  setFieldError('report-reason', '');
-  const alsoBlock = document.getElementById('report-block').checked;
-  const button = event.currentTarget.querySelector('[type="submit"]');
-  setLoading(button, true);
-  try {
-    await api.reportUser({
-      reportedUserId: profile.id,
-      context: 'profile',
-      reason: reason.value,
-      details: document.getElementById('report-details').value.trim(),
-    });
-    if (alsoBlock) await api.blockUser(me.id, profile.id);
-    document.getElementById('report-dialog').close();
-    toast('Thanks. Your report has been sent to our moderators.', { type: 'success' });
-    if (alsoBlock) renderState('blocked');
-  } catch (error) {
-    showAlert('report-alert', friendlyError(error));
-  } finally {
-    setLoading(button, false);
-  }
+async function handleReport() {
+  openReportDialog({
+    name: profile.display_name,
+    onSubmit: async ({ reason, details, alsoBlock }) => {
+      await api.reportUser({ reportedUserId: profile.id, context: 'profile', reason, details });
+      if (alsoBlock) await api.blockUser(me.id, profile.id);
+      toast('Thanks. Your report has been sent to our moderators.', { type: 'success' });
+      if (alsoBlock) renderState('blocked');
+    },
+  });
 }
 
 /* ================= Edit dialog ================= */
@@ -527,7 +497,6 @@ function initDialogs() {
     btn.addEventListener('click', () => btn.closest('dialog').close());
   });
   document.getElementById('edit-form').addEventListener('submit', submitEdit);
-  document.getElementById('report-form').addEventListener('submit', submitReport);
   document.getElementById('edit-bio').addEventListener('input', updateBioCounter);
   document.getElementById('edit-avatar').addEventListener('change', (e) => onImagePicked(e, 'avatars'));
   document.getElementById('edit-cover').addEventListener('change', (e) => onImagePicked(e, 'covers'));
@@ -537,27 +506,6 @@ function initDialogs() {
   });
 }
 
-function confirmAction({ title, message, confirmLabel }) {
-  const dialog = document.getElementById('confirm-dialog');
-  document.getElementById('confirm-title').textContent = title;
-  document.getElementById('confirm-message').textContent = message;
-  document.getElementById('confirm-yes').textContent = confirmLabel;
-  return new Promise((resolve) => {
-    const onClick = (event) => {
-      const choice = event.target.closest('[data-confirm]');
-      if (!choice) return;
-      dialog.close(choice.dataset.confirm);
-    };
-    dialog.addEventListener('click', onClick);
-    dialog.addEventListener('close', () => {
-      dialog.removeEventListener('click', onClick);
-      resolve(dialog.returnValue === 'yes');
-    }, { once: true });
-    dialog.returnValue = '';
-    dialog.showModal();
-    dialog.querySelector('[data-confirm="no"]').focus();
-  });
-}
 
 /* ================= Small helpers ================= */
 
@@ -572,11 +520,6 @@ async function withLoading(button, task) {
   }
 }
 
-function setLoading(button, loading) {
-  button.classList.toggle('is-loading', loading);
-  button.disabled = loading;
-  button.setAttribute('aria-busy', String(loading));
-}
 
 function setFieldError(inputId, message) {
   const input = document.getElementById(inputId);
@@ -604,29 +547,9 @@ function hideAlert(id) {
   document.getElementById(id).hidden = true;
 }
 
-function friendlyError(error) {
-  const message = error?.message || '';
-  if (error instanceof TypeError || /failed to fetch|network/i.test(message)) {
-    return "We can't reach JoloMeet right now. Check your connection and try again.";
-  }
-  // messages raised by our database functions are written for people
-  if (['JM400', 'JM403', 'JM404', 'JM409', 'JM429'].includes(error?.code)) return message;
-  if (error?.code === '23505') return 'That was already done.';
-  if (/payload too large|exceeded the maximum/i.test(message)) return 'That image is too large.';
-  return 'Something went wrong. Please try again.';
-}
 
-function icon(name, cls = 'icon') {
-  return `<svg class="${cls}" aria-hidden="true"><use href="${SPRITE}#${name}"/></svg>`;
-}
 
-function esc(value) {
-  return String(value ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-}
 
-function initials(name) {
-  return String(name || '?').trim().split(/\s+/).slice(0, 2).map((w) => w[0]).join('').toUpperCase();
-}
 
 function plural(n, word) {
   return n === 1 ? word : `${word}s`;
@@ -636,12 +559,3 @@ function formatJoined(iso) {
   return new Date(iso).toLocaleDateString(undefined, { month: 'short', year: 'numeric' });
 }
 
-function timeAgo(iso) {
-  const seconds = Math.round((new Date(iso).getTime() - Date.now()) / 1000);
-  const rtf = new Intl.RelativeTimeFormat(undefined, { numeric: 'auto' });
-  const units = [['day', 86400], ['hour', 3600], ['minute', 60]];
-  for (const [unit, size] of units) {
-    if (Math.abs(seconds) >= size) return rtf.format(Math.round(seconds / size), unit);
-  }
-  return 'just now';
-}

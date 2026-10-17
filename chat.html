@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
+  <title>Chat · JoloMeet</title>
+  <meta name="description" content="Chat with people on JoloMeet.">
+  <meta name="theme-color" content="#E91E78">
+  <meta name="robots" content="noindex">
+  <link rel="icon" href="assets/images/logo-32.png" type="image/png" sizes="32x32">
+  <link rel="icon" href="assets/images/logo-192.png" type="image/png" sizes="192x192">
+  <link rel="apple-touch-icon" href="assets/images/logo-180.png">
+  <meta property="og:title" content="JoloMeet: Meet Amazing People Worldwide">
+  <meta property="og:description" content="Random text and video chat with real people. Discover new friends and share your vibe.">
+  <meta property="og:image" content="assets/images/logo-512.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+  <link rel="stylesheet" href="css/variables.css">
+  <link rel="stylesheet" href="css/global.css">
+  <link rel="stylesheet" href="css/layout.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/chat.css">
+  <script type="module" src="js/chat.js"></script>
+</head>
+<body class="chat-page has-bottom-nav" data-page="chat">
+  <a class="skip-link" href="#chat-main">Skip to conversation</a>
+
+  <header class="site-header">
+    <div class="container site-header__inner">
+      <a class="brand" href="index.html" aria-label="JoloMeet home">
+        <img class="brand__logo" src="assets/images/logo-96.png" alt="" width="44" height="44">
+        <span>Jolo<span class="brand__accent">Meet</span></span>
+      </a>
+
+      <nav class="primary-nav" aria-label="Main">
+        <a class="nav-link" href="index.html" data-nav="home">Home</a>
+        <a class="nav-link" href="chat.html" data-nav="chat">Chat</a>
+        <a class="nav-link" href="video.html" data-nav="video">Video</a>
+        <a class="nav-link" href="explore.html" data-nav="explore">Explore</a>
+      </nav>
+
+      <div class="site-header__actions">
+        <a class="icon-button" href="explore.html" aria-label="Search people">
+          <svg class="icon" aria-hidden="true"><use href="assets/icons/sprite.svg#search"/></svg>
+        </a>
+        <a class="btn btn--secondary" href="login.html">Login</a>
+        <a class="btn btn--primary" href="register.html">Get Started</a>
+      </div>
+
+      <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="mobile-menu" aria-label="Open menu">
+        <svg class="icon" aria-hidden="true"><use href="assets/icons/sprite.svg#menu"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <nav class="mobile-menu" id="mobile-menu" aria-label="Mobile">
+    <a class="mobile-menu__link" href="index.html" data-nav="home"><svg class="icon" aria-hidden="true"><use href="assets/icons/sprite.svg#home"/></svg>Home</a>
+    <a class="mobile-menu__link" href="chat.html" data-nav="chat"><svg class="icon" aria-hidden="true"><use href="assets/icons/sprite.svg#chat"/></svg>Chat</a>
+    <a class="mobile-menu__link" href="video.html" data-nav="video"><svg class="icon" aria-hidden="true"><use href="assets/icons/sprite.svg#video"/></svg>Video</a>
+    <a class="mobile-menu__link" href="explore.html" data-nav="explore"><svg class="icon" aria-hidden="true"><use href="assets/icons/sprite.svg#compass"/></svg>Explore</a>
+    <div class="mobile-menu__actions">
+      <a class="btn btn--secondary btn--lg btn--block" href="login.html">Login</a>
+      <a class="btn btn--primary btn--lg btn--block" href="register.html">Get Started</a>
+    </div>
+  </nav>
+
+  <main class="chat-app" id="chat-app">
+    <!-- Conversation list -->
+    <aside class="chat-sidebar" aria-labelledby="chats-title">
+      <div class="chat-sidebar__top">
+        <div class="chat-sidebar__title">
+          <h1 id="chats-title">Chats</h1>
+          <button class="btn btn--primary btn--sm" type="button" id="new-chat"><svg class="icon icon--sm" aria-hidden="true"><use href="assets/icons/sprite.svg#plus"/></svg>New Chat</button>
+        </div>
+        <div class="chat-filters" role="group" aria-label="Filter conversations">
+          <button class="chat-filter" type="button" data-filter="all" aria-pressed="true">All</button>
+          <button class="chat-filter" type="button" data-filter="online" aria-pressed="false">Online</button>
+          <button class="chat-filter" type="button" data-filter="favorites" aria-pressed="false">Favorites</button>
+          <button class="chat-filter" type="button" data-filter="requests" aria-pressed="false">Requests <span class="badge" id="requests-count" hidden></span></button>
+        </div>
+        <div class="input-wrap">
+          <svg class="icon" aria-hidden="true"><use href="assets/icons/sprite.svg#search"/></svg>
+          <label class="sr-only" for="chat-search">Search conversations</label>
+          <input class="input chat-search" id="chat-search" type="search" placeholder="Search conversations" autocomplete="off">
+        </div>
+      </div>
+      <ul class="chat-list" id="chat-list" role="list" aria-busy="true">
+          <li class="chat-item chat-item--skeleton" aria-hidden="true"><span class="avatar skeleton"></span><span class="chat-item__body"><span class="skeleton skeleton--line"></span><span class="skeleton skeleton--line skeleton--short"></span></span></li>
+          <li class="chat-item chat-item--skeleton" aria-hidden="true"><span class="avatar skeleton"></span><span class="chat-item__body"><span class="skeleton skeleton--line"></span><span class="skeleton skeleton--line skeleton--short"></span></span></li>
+          <li class="chat-item chat-item--skeleton" aria-hidden="true"><span class="avatar skeleton"></span><span class="chat-item__body"><span class="skeleton skeleton--line"></span><span class="skeleton skeleton--line skeleton--short"></span></span></li>
+          <li class="chat-item chat-item--skeleton" aria-hidden="true"><span class="avatar skeleton"></span><span class="chat-item__body"><span class="skeleton skeleton--line"></span><span class="skeleton skeleton--line skeleton--short"></span></span></li>
+          <li class="chat-item chat-item--skeleton" aria-hidden="true"><span class="avatar skeleton"></span><span class="chat-item__body"><span class="skeleton skeleton--line"></span><span class="skeleton skeleton--line skeleton--short"></span></span></li>
+          <li class="chat-item chat-item--skeleton" aria-hidden="true"><span class="avatar skeleton"></span><span class="chat-item__body"><span class="skeleton skeleton--line"></span><span class="skeleton skeleton--line skeleton--short"></span></span></li>
+      </ul>
+    </aside>
+
+    <!-- Open conversation / matching / empty state (rendered by js/chat.js) -->
+    <section class="chat-main" id="chat-main" tabindex="-1" aria-label="Conversation">
+      <div class="chat-empty">
+        <span class="icon-badge"><svg class="icon" aria-hidden="true"><use href="assets/icons/sprite.svg#chat"/></svg></span>
+        <h2>Your conversations</h2>
+        <p>Pick a chat on the left, or meet someone new.</p>
+      </div>
+    </section>
+
+    <!-- Partner profile -->
+    <aside class="chat-panel" id="chat-panel" aria-label="Profile details" hidden></aside>
+    <div class="chat-panel-backdrop" id="chat-panel-backdrop" hidden></div>
+  </main>
+
+  <input type="file" id="chat-attachment" accept="image/jpeg,image/png,image/webp,image/gif" hidden>
+
+  <nav class="bottom-nav" aria-label="Quick navigation">
+    <ul class="bottom-nav__list" role="list">
+      <li><a class="bottom-nav__link" href="index.html" data-nav="home"><svg class="icon" aria-hidden="true"><use href="assets/icons/sprite.svg#home"/></svg>Home</a></li>
+      <li><a class="bottom-nav__link" href="chat.html" data-nav="chat"><svg class="icon" aria-hidden="true"><use href="assets/icons/sprite.svg#chat"/></svg>Chat</a></li>
+      <li><a class="bottom-nav__link" href="video.html" data-nav="video"><svg class="icon" aria-hidden="true"><use href="assets/icons/sprite.svg#video"/></svg>Video</a></li>
+      <li><a class="bottom-nav__link" href="explore.html" data-nav="explore"><svg class="icon" aria-hidden="true"><use href="assets/icons/sprite.svg#compass"/></svg>Explore</a></li>
+      <li><a class="bottom-nav__link" href="profile.html" data-nav="profile"><svg class="icon" aria-hidden="true"><use href="assets/icons/sprite.svg#user"/></svg>Profile</a></li>
+    </ul>
+  </nav>
+
+  <div class="toast-region" id="toast-region" role="status" aria-live="polite"></div>
+</body>
+</html>
