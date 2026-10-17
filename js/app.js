@@ -1,10 +1,12 @@
 // Shared bootstrapping and small utilities used by every page.
 import { initNavigation } from './navigation.js';
 import { getSession, signOut, touchPresence } from './api.js';
+import { initReveal } from './motion.js';
 
 export function initApp() {
   initNavigation();
   initAuthHeader();
+  initReveal();
   document.querySelectorAll('[data-year]').forEach((el) => {
     el.textContent = String(new Date().getFullYear());
   });
