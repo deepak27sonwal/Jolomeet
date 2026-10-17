@@ -1,7 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
   <!-- JoloMeet monogram: a purple J whose dot is a pink heart, on a soft pink circle -->
   <circle cx="24" cy="24" r="24" fill="#FFE0EE"/>
-  <g transform="translate(24 24.6) scale(.68) translate(-22.6 -20.7)">
+  <g transform="translate(24 24) scale(.7) translate(-23.125 -22.575)">
     <path d="M30 23.5v7a9 9 0 0 1-18 0" fill="none" stroke="#8B2CF5" stroke-width="7.5" stroke-linecap="round"/>
     <path d="M30 16.8c-.9-.6-8-5.2-8-10.3 0-2.6 2.1-4.6 4.5-4.6 1.6 0 2.8.8 3.5 1.9.7-1.1 1.9-1.9 3.5-1.9 2.4 0 4.5 2 4.5 4.6 0 5.1-7.1 9.7-8 10.3z" fill="#E91E78"/>
   </g>
