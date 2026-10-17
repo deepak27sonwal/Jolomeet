@@ -38,7 +38,7 @@
   --text-xl: clamp(1.25rem, 1.1rem + 0.6vw, 1.5rem);
   --text-2xl: clamp(1.5rem, 1.2rem + 1.2vw, 2rem);
   --text-3xl: clamp(1.875rem, 1.4rem + 2vw, 2.75rem);
-  --text-hero: clamp(2.5rem, 1.7rem + 3vw, 3.75rem);
+  --text-hero: clamp(2.125rem, 1.6rem + 2.2vw, 3.25rem);
   --leading-tight: 1.08;
   --leading-normal: 1.6;
   --weight-regular: 400;
@@ -58,7 +58,7 @@
   --space-10: 2.5rem;
   --space-12: 3rem;
   --space-16: 4rem;
-  --space-section: clamp(3rem, 2rem + 4vw, 5.5rem);
+  --space-section: clamp(2.5rem, 1.75rem + 3vw, 4.25rem);
 
   /* Radii */
   --radius-sm: 10px;
@@ -76,9 +76,9 @@
   --focus-ring: 0 0 0 3px #FFFFFF, 0 0 0 5px var(--color-primary);
 
   /* Icons */
-  --icon-sm: 18px;
-  --icon-md: 22px;
-  --icon-lg: 28px;
+  --icon-sm: 16px;
+  --icon-md: 20px;
+  --icon-lg: 24px;
 
   /* Motion */
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);

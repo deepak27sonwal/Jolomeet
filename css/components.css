@@ -55,8 +55,8 @@
 .btn--hero {
   justify-content: center;
   gap: var(--space-3);
-  min-height: 68px;
-  padding: var(--space-2) var(--space-6);
+  min-height: 56px;
+  padding: var(--space-2) var(--space-5);
   border-radius: var(--radius-lg);
   text-align: center;
   line-height: 1.2;
@@ -65,22 +65,22 @@
 .btn--hero .btn__icon {
   display: grid;
   place-items: center;
-  width: 50px;
-  height: 50px;
+  width: 40px;
+  height: 40px;
   border-radius: var(--radius-md);
   background: rgba(255, 255, 255, 0.2);
 }
 
-.btn--hero .btn__icon .icon { width: 26px; height: 26px; }
+.btn--hero .btn__icon .icon { width: 20px; height: 20px; }
 
 .btn__text {
   display: grid;
-  gap: 3px;
-  font-size: var(--text-lg);
+  gap: 2px;
+  font-size: var(--text-base);
 }
 
 .btn__text small {
-  font-size: var(--text-sm);
+  font-size: var(--text-xs);
   font-weight: var(--weight-medium);
   opacity: 0.9;
 }
@@ -150,8 +150,8 @@
 .icon-badge {
   display: grid;
   place-items: center;
-  width: 48px;
-  height: 48px;
+  width: 40px;
+  height: 40px;
   border-radius: var(--radius-md);
   background: var(--color-bg-soft);
   color: var(--color-primary);
@@ -161,15 +161,16 @@
 .chip-list {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-3);
+  gap: var(--space-2);
 }
 
 .chip {
   display: inline-flex;
   align-items: center;
   gap: var(--space-2);
-  min-height: 44px;
-  padding: 0 var(--space-5);
+  min-height: 38px;
+  padding: 0 var(--space-4);
+  font-size: var(--text-sm);
   border: 1.5px solid var(--color-border);
   border-radius: var(--radius-pill);
   background: var(--color-bg);
@@ -246,7 +247,7 @@
   animation: skeleton-shimmer 1.4s infinite;
 }
 
-.skeleton--chip { width: 104px; height: 44px; }
+.skeleton--chip { width: 96px; height: 38px; }
 
 @keyframes skeleton-shimmer {
   to { transform: translateX(100%); }
