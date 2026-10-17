@@ -15,8 +15,6 @@
   gap: clamp(2rem, 1rem + 4vw, 4rem);
 }
 
-.hero h1 { color: var(--color-text); }
-
 .hero__line { display: block; }
 
 .hero__title-accent {
@@ -305,7 +303,7 @@
   box-shadow: var(--shadow-lg);
 }
 
-.cta h2 { font-size: var(--text-2xl); }
+.cta h2 { color: inherit; font-size: var(--text-2xl); }
 .cta p { margin-top: var(--space-2); opacity: 0.92; }
 
 .cta .btn--secondary { border-color: transparent; }
