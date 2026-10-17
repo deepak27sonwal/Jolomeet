@@ -1,8 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
-  <!-- JoloMeet mark "Meeting Point": two chat bubbles meet, a heart forms where they overlap -->
-  <path d="M8.5 31 4.5 41l10.5-5.2z" fill="#8B2CF5"/>
-  <circle cx="17.5" cy="23" r="13.5" fill="#8B2CF5"/>
-  <circle cx="30.5" cy="23" r="13.5" fill="#E91E78" style="mix-blend-mode:multiply"/>
-  <path d="M39.5 31l4 10-10.5-5.2z" fill="#E91E78"/>
-  <path d="M24 29.6c-.6-.4-6-3.9-6-7.7 0-2 1.6-3.5 3.4-3.5 1.2 0 2.1.6 2.6 1.4.5-.8 1.4-1.4 2.6-1.4 1.8 0 3.4 1.5 3.4 3.5 0 3.8-5.4 7.3-6 7.7z" fill="#FFFFFF"/>
+  <!-- JoloMeet monogram: a purple J whose dot is a pink heart (theme colours only) -->
+  <path d="M30 23.5v7a9 9 0 0 1-18 0" fill="none" stroke="#8B2CF5" stroke-width="7.5" stroke-linecap="round"/>
+  <path d="M30 16.8c-.9-.6-8-5.2-8-10.3 0-2.6 2.1-4.6 4.5-4.6 1.6 0 2.8.8 3.5 1.9.7-1.1 1.9-1.9 3.5-1.9 2.4 0 4.5 2 4.5 4.6 0 5.1-7.1 9.7-8 10.3z" fill="#E91E78"/>
 </svg>
