@@ -232,26 +232,34 @@ body.menu-open { overflow: hidden; }
   justify-content: center;
   gap: 2px;
   height: 100%;
-  color: var(--color-nav);
+  color: var(--color-primary);
   font-size: 0.6875rem;
   font-weight: var(--weight-semibold);
   text-decoration: none;
+  transition: color var(--duration-fast);
   -webkit-tap-highlight-color: transparent;
 }
 
-.bottom-nav__link .icon { width: 24px; height: 24px; }
-
-.bottom-nav__link[aria-current="page"] { color: var(--color-accent); }
-
-.bottom-nav__link[aria-current="page"] .icon {
-  padding: 2px 10px;
+.bottom-nav__link .icon {
   width: 44px;
   height: 28px;
+  padding: 2px 10px;
   border-radius: var(--radius-pill);
-  background: var(--color-accent-soft);
+  transition: background-color var(--duration-fast);
 }
 
-.bottom-nav__link:active { color: var(--color-accent-pressed); }
+/* current page: pink pill */
+.bottom-nav__link[aria-current="page"] { color: var(--color-primary-pressed); }
+.bottom-nav__link[aria-current="page"] .icon { background: var(--color-selected); }
+
+/* hover (and tap, since touch screens have no hover): switch to purple */
+.bottom-nav__link:hover,
+.bottom-nav__link:active,
+.bottom-nav__link:focus-visible { color: var(--color-accent); }
+
+.bottom-nav__link:hover .icon,
+.bottom-nav__link:active .icon,
+.bottom-nav__link:focus-visible .icon { background: var(--color-accent-soft); }
 
 /* ---------- Footer ---------- */
 .site-footer {
