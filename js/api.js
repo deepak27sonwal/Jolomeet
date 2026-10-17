@@ -209,12 +209,14 @@ export async function unblockUser(myId, otherId) {
   if (error) throw error;
 }
 
-export async function reportUser({ reportedUserId, context, reason, details }) {
+export async function reportUser({ reportedUserId, context, reason, details, conversationId, sessionId }) {
   const { error } = await supabase.from('reports').insert({
     reported_user_id: reportedUserId,
     context,
     reason,
     details: details || null,
+    conversation_id: conversationId || null,
+    session_id: sessionId || null,
   });
   if (error) throw error;
 }
@@ -231,4 +233,173 @@ export async function startDirectCall(otherId) {
   const { data, error } = await supabase.rpc('start_direct_call', { p_other_user: otherId });
   if (error) throw error;
   return data;
+}
+
+/* ---------- Presence ---------- */
+
+export async function touchPresence() {
+  const { error } = await supabase.rpc('touch_presence');
+  if (error) throw error;
+}
+
+/** Last-seen times for the given users (only those who share their status). */
+export async function getPresence(userIds) {
+  if (!userIds.length) return [];
+  const { data, error } = await supabase.from('user_presence').select('user_id, last_seen_at').in('user_id', userIds);
+  if (error) throw error;
+  return data;
+}
+
+/* ---------- Chat ---------- */
+
+export const CHAT_IMAGE_RULES = {
+  maxBytes: 5 * 1024 * 1024,
+  types: ['image/jpeg', 'image/png', 'image/webp', 'image/gif'],
+};
+
+/** Sidebar list. filter: 'all' | 'favorites' | 'requests'. */
+export async function listConversations(filter = 'all') {
+  const { data, error } = await supabase.rpc('list_my_conversations', { p_filter: filter, p_limit: 100 });
+  if (error) throw error;
+  return data;
+}
+
+/** Conversation kind, both participants and (for random chats) the match session. */
+export async function getConversationMeta(conversationId) {
+  const [conv, parts, session] = await Promise.all([
+    supabase.from('conversations').select('id, kind').eq('id', conversationId).maybeSingle(),
+    supabase.from('conversation_participants')
+      .select('user_id, status, last_read_at, is_favorite').eq('conversation_id', conversationId),
+    supabase.from('match_sessions')
+      .select('id, status, mode, end_reason, ended_by').eq('conversation_id', conversationId)
+      .order('created_at', { ascending: false }).limit(1).maybeSingle(),
+  ]);
+  for (const r of [conv, parts, session]) if (r.error) throw r.error;
+  if (!conv.data) return null;
+  return { conversation: conv.data, participants: parts.data, session: session.data };
+}
+
+const MESSAGE_FIELDS = 'id, conversation_id, sender_id, client_id, kind, body, attachment_path, created_at, deleted_at';
+
+/** Newest-last page of messages, optionally older than `before` (ISO time). */
+export async function getMessages(conversationId, { before = null, limit = 40 } = {}) {
+  let query = supabase.from('messages').select(MESSAGE_FIELDS)
+    .eq('conversation_id', conversationId)
+    .order('created_at', { ascending: false })
+    .limit(limit);
+  if (before) query = query.lt('created_at', before);
+  const { data, error } = await query;
+  if (error) throw error;
+  return data.reverse();
+}
+
+export async function getMessageByClientId(clientId) {
+  const { data, error } = await supabase.from('messages').select(MESSAGE_FIELDS).eq('client_id', clientId).maybeSingle();
+  if (error) throw error;
+  return data;
+}
+
+/** Inserts a message. client_id makes a retry safe: the same message can't be stored twice. */
+export async function sendMessage({ conversationId, clientId, body, kind = 'text', attachmentPath = null }) {
+  const { data, error } = await supabase.from('messages')
+    .insert({ conversation_id: conversationId, client_id: clientId, kind, body: body || null, attachment_path: attachmentPath })
+    .select(MESSAGE_FIELDS)
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+export async function markConversationRead(conversationId, userId) {
+  const { error } = await supabase.from('conversation_participants')
+    .update({ last_read_at: new Date().toISOString() })
+    .eq('conversation_id', conversationId).eq('user_id', userId);
+  if (error) throw error;
+}
+
+/** fields: { status: 'active' | 'left' } and/or { is_favorite, is_muted } */
+export async function updateParticipation(conversationId, userId, fields) {
+  const { error } = await supabase.from('conversation_participants')
+    .update(fields).eq('conversation_id', conversationId).eq('user_id', userId);
+  if (error) throw error;
+}
+
+export async function uploadChatImage(conversationId, userId, file) {
+  const ext = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/gif': 'gif' }[file.type];
+  const path = `${conversationId}/${userId}/${Date.now()}.${ext}`;
+  const { error } = await supabase.storage.from('chat-attachments')
+    .upload(path, file, { contentType: file.type, upsert: false });
+  if (error) throw error;
+  return path;
+}
+
+/** Chat images live in a private bucket, so they are shown through short-lived signed links. */
+export async function chatImageUrl(path) {
+  const { data, error } = await supabase.storage.from('chat-attachments').createSignedUrl(path, 3600);
+  if (error) throw error;
+  return data.signedUrl;
+}
+
+/* ---------- Matchmaking ---------- */
+
+/** Returns { status: 'waiting' | 'matched' | 'ringing', session_id, conversation_id, partner_id, ... }. */
+export async function requestMatch(mode, interests = [], languages = []) {
+  const { data, error } = await supabase.rpc('request_match', {
+    p_mode: mode, p_interests: interests, p_languages: languages,
+  });
+  if (error) throw error;
+  return data?.[0] ?? null;
+}
+
+export async function leaveMatchQueue() {
+  const { error } = await supabase.rpc('leave_match_queue');
+  if (error) throw error;
+}
+
+/** reason: 'ended' | 'next' | 'disconnected' | 'declined' | 'reported' */
+export async function endMatchSession(sessionId, reason = 'ended') {
+  const { error } = await supabase.rpc('end_match_session', { p_session_id: sessionId, p_reason: reason });
+  if (error) throw error;
+}
+
+/* ---------- Realtime ---------- */
+
+async function authorizeRealtime() {
+  const session = await getSession();
+  if (session) supabase.realtime.setAuth(session.access_token);
+}
+
+/**
+ * Live database changes for everything the user can see (RLS filters them):
+ * new/updated messages, read receipts, session changes and new matches.
+ */
+export async function subscribeToInbox(userId, handlers) {
+  await authorizeRealtime();
+  return supabase.channel(`inbox-${userId}`)
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, (p) => handlers.onMessage?.(p.new))
+    .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'messages' }, (p) => handlers.onMessageUpdate?.(p.new))
+    .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'conversation_participants' }, (p) => handlers.onParticipant?.(p.new))
+    .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'match_sessions' }, (p) => handlers.onSession?.(p.new))
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'match_session_participants', filter: `user_id=eq.${userId}` },
+      (p) => handlers.onMatched?.(p.new))
+    .subscribe((status) => handlers.onStatus?.(status));
+}
+
+/** Private broadcast channel for typing indicators in one conversation. */
+export async function joinTypingChannel(conversationId, onTyping) {
+  await authorizeRealtime();
+  const channel = supabase.channel(`conversation:${conversationId}`, {
+    config: { private: true, broadcast: { self: false } },
+  });
+  channel.on('broadcast', { event: 'typing' }, ({ payload }) => onTyping(payload)).subscribe();
+  return {
+    // only over the open socket; before it joins, send() would fall back to an HTTP request
+    sendTyping: (userId) => {
+      if (channel.state === 'joined') channel.send({ type: 'broadcast', event: 'typing', payload: { user_id: userId } });
+    },
+    leave: () => supabase.removeChannel(channel),
+  };
+}
+
+export function leaveChannel(channel) {
+  if (channel) supabase.removeChannel(channel);
 }

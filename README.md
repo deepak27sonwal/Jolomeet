@@ -23,6 +23,7 @@ python3 -m http.server 8000
 - `register.html`: create an account (email confirmation)
 - `reset-password.html`: set a new password from the emailed link
 - `profile.html`: your profile (edit photo, cover, bio, interests, languages, privacy) or `profile.html?id=<user id>` for someone else's (chat, video, connect, report, block)
+- `chat.html`: conversations, message requests, favorites, random text matching (`chat.html?mode=random`) and a chat by id (`chat.html?c=<conversation id>`); realtime messages, typing, read receipts, photos, report and block
 
 ## Frontend structure
 
