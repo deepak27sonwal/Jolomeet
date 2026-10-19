@@ -7,6 +7,7 @@ import * as api from './api.js';
 import { CallPeer, watchAudioLevel } from './rtc.js';
 import { icon, esc, avatarHtml, friendlyError } from './ui.js';
 import { confirmAction, openReportDialog } from './dialogs.js';
+import { askAboutYou } from './quick-start.js';
 
 const MODE = document.body.dataset.mode === 'video' ? 'video' : 'audio';
 const VIDEO = MODE === 'video';
@@ -79,10 +80,12 @@ async function init() {
   } catch {
     /* treated as signed out */
   }
+  // random calls need no account: ask for a name, gender and age, then go straight in
+  const firstVisit = !session;
   if (!session) {
-    const page = window.location.pathname.split('/').pop() || `${MODE}.html`;
-    window.location.replace(`login.html?next=${encodeURIComponent(page)}#guest`); // random: no account needed
-    return;
+    stage.dataset.screen = 'about-you';
+    stage.setAttribute('aria-busy', 'false');
+    session = await askAboutYou(stage, { action: COPY.start, next: `${MODE}.html` });
   }
   state.me = session.user;
 
@@ -104,7 +107,8 @@ async function init() {
     },
   }).catch(() => {});
 
-  renderStart();
+  if (firstVisit) startSearch();
+  else renderStart();
 }
 
 /* =========================================================================
@@ -214,7 +218,7 @@ function renderLive() {
 
 /** Video: name, timer and safety buttons over the other person's video. */
 function hudHtml(c, live) {
-  const age = c.age ? `, ${esc(c.age)}` : '';
+  const age = (c.age ? `, ${esc(c.age)}` : '') + (c.gender ? ` · ${esc(c.gender)}` : '');
   return `
     <div class="call-hud">
       <div class="call-hud__who">
@@ -281,11 +285,12 @@ function renderError(title, message, { retry = true, extra = '' } = {}) {
 
 /** Audio: big avatar with a ring that moves with the other person's voice. */
 function partnerHtml(c) {
-  const age = c.age ? `<span class="text-muted">, ${esc(c.age)}</span>` : '';
+  const details = [c.age, c.gender].filter(Boolean).map(esc).join(' · ');
   return `
     <div class="call-partner">
       <div class="call-voice" id="call-voice" aria-hidden="true">${avatarHtml(c.name, c.avatarUrl, 'call-avatar')}</div>
-      <h1>${esc(c.name)}${age}</h1>
+      <h1>${esc(c.name)}</h1>
+      ${details ? `<p class="call-details">${details}</p>` : ''}
       ${c.shared.length ? `<p class="text-muted">You both like</p>${chipsHtml(c.shared, c.shared)}` : ''}
     </div>`;
 }
@@ -515,6 +520,7 @@ async function connect(match) {
     name: 'Someone new',
     avatarUrl: null,
     age: null,
+    gender: '',
     remoteMuted: false,
     remoteCameraOff: false,
     startedAt: 0,
@@ -527,11 +533,12 @@ async function connect(match) {
   state.call = call;
   renderConnecting();
 
-  api.getProfile(call.partnerId).then((p) => {
+  Promise.all([api.getProfile(call.partnerId), api.getGenderLabel(call.partnerId).catch(() => '')]).then(([p, gender]) => {
     if (!p || state.call !== call) return;
     call.name = p.display_name || call.name;
     call.avatarUrl = api.publicImageUrl('avatars', p.avatar_path);
     call.age = p.age;
+    call.gender = gender;
     rerenderCall(call);
   }).catch(() => {});
 

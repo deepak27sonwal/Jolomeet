@@ -646,3 +646,26 @@
 @media (prefers-reduced-motion: reduce) {
   .spinner, .match-pulse::before, .match-pulse::after, .typing span, .msg { animation: none; }
 }
+
+/* "About you" form shown in place of a conversation before random chat */
+.chat-about-you {
+  display: grid;
+  place-items: center;
+  height: 100%;
+  padding: var(--space-6) var(--space-4);
+  overflow-y: auto;
+}
+
+.chat-about-you .about-you {
+  padding: var(--space-6);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  background: var(--color-bg);
+  box-shadow: var(--shadow-lg);
+}
+
+@media (max-width: 767px) {
+  /* phones: the form replaces the (still empty) chat list, header stays */
+  .chat-page.chat-about .chat-sidebar { display: none; }
+  .chat-page.chat-about .chat-main { display: flex; }
+}

@@ -18,10 +18,10 @@ python3 -m http.server 8000
 
 ## Pages
 
-- `index.html`: homepage, including the two ways to use JoloMeet: **Random** (text, audio, video with strangers; no sign-up, guests welcome) and **With your account** (profile, connections, direct messages, saved history). Signed-out visitors opening a Random page land on the guest form; account features ask guests to create an account (also enforced in the database)
-- `login.html`: log in, forgot password, continue as guest (`login.html#guest` opens the guest form)
-- `register.html`: create an account (email confirmation); a signed-in guest upgrades their guest account here and keeps their chats
-- `reset-password.html`: set a new password from the emailed link (`?finish=1`: an upgraded guest chooses their first password)
+- `index.html`: homepage, including the two ways to use JoloMeet: **Random** (text, audio, video with strangers; no sign-up, guests welcome) and **With your account** (profile, connections, direct messages, saved history). Random needs no sign-up: visitors give a name, gender and age (`js/quick-start.js`) and go straight in; account features ask them to create an account (also enforced in the database)
+- `login.html`: log in, forgot password, or start a random chat without an account
+- `register.html`: create an account (email confirmation); someone chatting without an account turns it into a full account here and keeps their chats
+- `reset-password.html`: set a new password from the emailed link (`?finish=1`: someone upgrading from a no-account session chooses their first password)
 - `profile.html`: your profile (edit photo, cover, bio, interests, languages, privacy) or `profile.html?id=<user id>` for someone else's (chat, video, connect, report, block)
 - `video.html`: random video chat (camera + microphone permission, self view, camera on/off and front/back switch, the other person's mute/camera state, next, end, report, block; full screen on phones)
 - `audio.html`: random voice-only calls (microphone permission, matching on your interests, mute, next, end, report, block); peer-to-peer WebRTC with signalling over a private Supabase Realtime channel

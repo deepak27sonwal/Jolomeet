@@ -13,6 +13,11 @@ export function initApp() {
   });
 }
 
+/** Re-checks the session, e.g. right after someone starts a random chat without an account. */
+export function refreshAuthHeader() {
+  return initAuthHeader();
+}
+
 /** Swaps the Login / Get Started buttons for account actions once signed in. */
 async function initAuthHeader() {
   let session;
@@ -51,7 +56,11 @@ async function initAuthHeader() {
 const HEARTBEAT_MS = 30_000;
 
 /** Keeps last_seen_at fresh while the tab is visible. */
+let heartbeatStarted = false;
+
 function startPresenceHeartbeat() {
+  if (heartbeatStarted) return;
+  heartbeatStarted = true;
   const beat = () => {
     if (document.visibilityState === 'visible') touchPresence().catch(() => {});
   };
@@ -62,11 +71,11 @@ function startPresenceHeartbeat() {
 
 async function handleLogout(event, guest) {
   const button = event.currentTarget;
-  // a guest account can't be logged back into, so make sure they mean it
+  // a session without an account can't be logged back into, so make sure they mean it
   if (guest) {
     const ok = await confirmAction({
-      title: 'Leave guest mode?',
-      message: "Guest chats can't be recovered after you log out. Create a free account first to keep them.",
+      title: 'Log out?',
+      message: "You're chatting without an account, so these chats can't be recovered after you log out. Create a free account first to keep them.",
       confirmLabel: 'Log Out',
     });
     if (!ok) return;

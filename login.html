@@ -113,7 +113,7 @@
             <button class="btn btn--primary btn--lg btn--block" type="submit">Log In</button>
           </form>
           <p class="divider">or</p>
-          <button class="btn btn--secondary btn--lg btn--block" type="button" data-show-panel="guest">Continue as Guest</button>
+          <a class="btn btn--secondary btn--lg btn--block" href="chat.html?mode=random">Start a Random Chat, No Account Needed</a>
           <p class="auth__switch">New to JoloMeet? <a href="register.html">Create an account</a></p>
         </div>
 
@@ -137,28 +137,6 @@
           </form>
         </div>
 
-        <div class="auth__panel" data-panel="guest" hidden>
-          <button class="auth__back" type="button" data-show-panel="login"><svg class="icon icon--sm" aria-hidden="true"><use href="assets/icons/sprite.svg#arrow-left"/></svg>Back to log in</button>
-          <header class="auth__header">
-            <h1>Continue as a guest</h1>
-            <p>Guests can use random text and video chat. Create an account to keep friends, chats and a profile.</p>
-          </header>
-          <div class="alert" id="guest-alert" role="alert" hidden></div>
-          <form class="form" id="guest-form" novalidate>
-          <div class="field">
-            <label class="field__label" for="guest-birth-date">Date of birth</label>
-            <div class="input-wrap">
-              <svg class="icon" aria-hidden="true"><use href="assets/icons/sprite.svg#calendar"/></svg>
-              <input class="input" id="guest-birth-date" name="guest-birth-date" type="date" autocomplete="bday" required aria-describedby="guest-birth-date-error guest-birth-date-hint">
-            </div>
-            <p class="field__hint" id="guest-birth-date-hint">You must be 18 or older. We never show your birth date to anyone.</p>
-            <p class="field__error" id="guest-birth-date-error"></p>
-          </div>
-            <label class="checkbox"><input type="checkbox" id="guest-terms" required aria-describedby="guest-terms-error"> <span>I'm 18 or older and agree to the Terms and Community Guidelines.</span></label>
-            <p class="field__error" id="guest-terms-error"></p>
-            <button class="btn btn--primary btn--lg btn--block" type="submit">Start as Guest</button>
-          </form>
-        </div>
         <p class="auth__legal">By continuing you agree to our <a href="terms.html">Terms</a>, <a href="privacy.html">Privacy Policy</a> and <a href="guidelines.html">Community Guidelines</a>.</p>
       </section>
     </div>

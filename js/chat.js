@@ -4,6 +4,7 @@ import { STORAGE_KEYS } from './config.js';
 import * as api from './api.js';
 import { icon, esc, avatarHtml, timeAgo, setLoading, friendlyError } from './ui.js';
 import { confirmAction, openReportDialog } from './dialogs.js';
+import { askAboutYou } from './quick-start.js';
 
 const ONLINE_WINDOW_MS = 2 * 60 * 1000;
 const PRESENCE_REFRESH_MS = 60_000;
@@ -56,11 +57,16 @@ async function init() {
     session = null;
   }
   if (!session) {
-    const next = encodeURIComponent(`chat.html${window.location.search}`);
-    // random chat needs no account, so offer the guest form first; the chat list needs a log in
-    const random = new URLSearchParams(window.location.search).get('mode') === 'random';
-    window.location.replace(`login.html?next=${next}${random ? '#guest' : ''}`);
-    return;
+    // random chat needs no account: ask for a name, gender and age, then go straight in.
+    // The chat list itself (saved conversations) needs a log in.
+    if (new URLSearchParams(window.location.search).get('mode') !== 'random') {
+      window.location.replace(`login.html?next=${encodeURIComponent(`chat.html${window.location.search}`)}`);
+      return;
+    }
+    document.body.classList.add('chat-about');
+    main.innerHTML = '<div class="chat-about-you"></div>';
+    session = await askAboutYou(main.firstElementChild, { action: 'Start Random Chat', next: 'chat.html?mode=random' });
+    document.body.classList.remove('chat-about');
   }
   state.me = session.user;
   if (state.me.is_anonymous) showGuestNotice();
@@ -324,7 +330,13 @@ async function openConversation(id, { push = false, intro = null } = {}) {
   const theirs = meta.participants.find((p) => p.user_id !== state.me.id) || {};
   const row = findListRow(id);
   let profile = null;
-  if (theirs.user_id) profile = await api.getProfile(theirs.user_id).catch(() => null);
+  let gender = '';
+  if (theirs.user_id) {
+    [profile, gender] = await Promise.all([
+      api.getProfile(theirs.user_id).catch(() => null),
+      api.getGenderLabel(theirs.user_id).catch(() => ''),
+    ]);
+  }
   if (seq !== state.openSeq) return;
 
   const name = profile?.display_name || row?.partner_name || 'JoloMeet user';
@@ -340,6 +352,7 @@ async function openConversation(id, { push = false, intro = null } = {}) {
       name,
       avatarUrl: api.publicImageUrl('avatars', profile?.avatar_path ?? row?.partner_avatar_path),
       profile,
+      gender,
     },
     blocked: Boolean(profile?.is_blocked_by_me),
     partnerLastRead: row?.partner_last_read_at ?? null,
@@ -1215,6 +1228,7 @@ function renderPanel() {
   const seen = state.presence.get(a.partner.id);
   const status = online ? 'Online now' : seen ? `Active ${timeAgo(seen)}` : '';
   const age = p?.age ? `<span class="text-muted">, ${esc(p.age)}</span>` : '';
+  const gender = a.partner.gender ? `<p class="text-muted">${esc(a.partner.gender)}</p>` : '';
 
   let interests = '';
   if (p?.interests?.length) {
@@ -1238,8 +1252,8 @@ function renderPanel() {
     ${avatarHtml(a.partner.name, a.partner.avatarUrl)}
     <div>
       <h2>${esc(a.partner.name)}${age}</h2>
+      ${gender}
       ${status ? `<p class="text-muted">${esc(status)}</p>` : ''}
-      ${p?.is_guest ? '<p class="text-muted">Guest</p>' : ''}
     </div>
     ${bio}
     ${interests}
@@ -1320,6 +1334,6 @@ async function handleUnblock(button) {
 function showGuestNotice() {
   const note = document.createElement('p');
   note.className = 'chat-guest-note';
-  note.innerHTML = `${icon('user-plus', 'icon icon--sm')}<span>You're chatting as a guest. <a href="register.html">Create an account</a> to keep your chats.</span>`;
+  note.innerHTML = `${icon('user-plus', 'icon icon--sm')}<span>You're chatting without an account. <a href="register.html">Create one</a> to keep your chats.</span>`;
   document.querySelector('.chat-sidebar__top').append(note);
 }
