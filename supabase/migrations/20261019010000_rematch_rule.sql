@@ -2,7 +2,8 @@
 -- could not be matched again at all (in any mode), so with few people online,
 -- e.g. trying audio or video right after a text chat, both just waited.
 -- Now only an instant re-match right after one of them pressed Next (same
--- mode, 2 minutes) is prevented; otherwise someone new is simply preferred.
+-- mode) is prevented, for a short cool-off (v_cooloff, 1 minute while
+-- testing; raise it later); otherwise someone new is simply preferred.
 -- Matching is serialized with a table lock on match_queue (same effect as the
 -- advisory lock before).
 
@@ -29,6 +30,8 @@ declare
   v_partner   uuid;
   v_session   uuid;
   v_conv      uuid;
+  -- after someone presses Next, how long before the same two can be matched again
+  v_cooloff   interval := interval '1 minute';
 begin
   if v_uid is null then
     raise exception 'Not authenticated' using errcode = 'JM401';
@@ -88,7 +91,7 @@ begin
       join public.match_sessions s on s.id = a.session_id
       where a.user_id = v_uid and b.user_id = q.user_id
         and s.mode = p_mode and s.end_reason = 'next'
-        and s.ended_at > now() - interval '2 minutes'
+        and s.ended_at > now() - v_cooloff
     )
   -- prefer someone new over someone matched in the last 10 minutes, then shared interests
   order by exists (
