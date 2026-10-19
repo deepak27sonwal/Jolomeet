@@ -76,6 +76,7 @@ Errors use custom SQLSTATE codes that the UI can map to messages:
 1. **Auth** (Dashboard → Authentication):
    - Enable the **Email** provider (keep "Confirm email" on) and **Anonymous sign-ins** (used by "Continue as Guest").
    - **URL Configuration**: set the Site URL to where the site is hosted and add `…/login.html` and `…/reset-password.html` to the redirect allow-list. The confirmation and password-reset emails link back to those pages.
+   - Random chat without an account: the browser calls `signInAnonymously` with `options.data = { display_name, gender, birth_date, show_age: 'true', accepted_terms: 'true' }`. The visitor only gives an age; `birth_date` is an approximate date for that age, so the 18+ checks apply, and `show_age` lets matched partners see it. `profiles.gender` is `female`, `male`, `nonbinary` or null (migration `20261019000000_quick_random_profile.sql`); matched partners can read it because they share a conversation.
    - Guest upgrade: a signed-in guest's register form calls `auth.updateUser({ email })`, so the "Change email address" template is the email they get; its link opens `reset-password.html?finish=1` (covered by the redirect entry above), where they set their first password. Keeping **Secure email change** on is fine: guests have no previous email to confirm.
    - The register page sends `options.data = { display_name, birth_date, accepted_terms: 'true' }`; under-18 birth dates are rejected by the database trigger as well as the form.
 2. **Realtime**: turn off "Allow public access" under Realtime settings so only private, authorized channels work.
@@ -94,7 +95,7 @@ Errors use custom SQLSTATE codes that the UI can map to messages:
 ## Calls (WebRTC)
 
 - `chat_mode` is `text`, `video` or `audio` (`20261018000000_audio_calls.sql`); `request_match` pairs people in the same mode only.
-- After a match, both browsers join the private Realtime channel `match:<session id>` (only the session's two participants are authorized) and exchange WebRTC offer/answer/ICE messages there. Audio flows directly between the two browsers; nothing is recorded or stored.
+- After a match, both browsers join the private Realtime channel `match:<session id>` (only the session's two participants are authorized) and exchange WebRTC offer/answer/ICE messages there. Audio and video flow directly between the two browsers; nothing is recorded or stored. Besides the WebRTC messages, the pages send `{ kind: 'media', muted, cameraOff }` so each side can show the other's mute/camera state.
 - `js/config.js` lists public STUN servers. Calls between people on very strict networks (some offices, schools, mobile carriers) need a TURN relay as well; add one from a TURN provider to `ICE_SERVERS` when needed.
 - Reports from a call use the `audio_call` (or `video_call`) context with the session id.
 

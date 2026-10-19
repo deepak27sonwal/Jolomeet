@@ -19,7 +19,7 @@ if (page === 'reset-password') initResetPassword();
 async function initLogin() {
   await redirectIfSignedIn();
 
-  const panels = { reset: 'reset-email', guest: 'guest-birth-date', login: 'login-email' };
+  const panels = { reset: 'reset-email', login: 'login-email' };
   document.querySelectorAll('[data-show-panel]').forEach((btn) => {
     btn.addEventListener('click', () => showPanel(btn.dataset.showPanel, panels[btn.dataset.showPanel]));
   });
@@ -82,30 +82,6 @@ async function initLogin() {
       showAlert('reset-alert', 'error', friendlyError(error));
     } finally {
       setLoading(button, false);
-    }
-  });
-
-  // --- guest ---
-  const guestForm = document.getElementById('guest-form');
-  const birthDate = document.getElementById('guest-birth-date');
-  const terms = document.getElementById('guest-terms');
-  setBirthDateLimits(birthDate);
-  const guestRules = [[birthDate, () => v.validateBirthDate(birthDate.value)],
-                      [terms, () => (terms.checked ? '' : 'Please confirm you are 18+ and agree to continue.')]];
-  liveValidate(guestRules);
-
-  guestForm.addEventListener('submit', async (event) => {
-    event.preventDefault();
-    hideAlert('guest-alert');
-    if (!validateAll(guestRules)) return;
-    const button = guestForm.querySelector('[type="submit"]');
-    setLoading(button, true);
-    try {
-      await api.signInAsGuest(birthDate.value);
-      window.location.assign(nextPage);
-    } catch (error) {
-      setLoading(button, false);
-      showAlert('guest-alert', 'error', friendlyError(error));
     }
   });
 }
@@ -221,7 +197,7 @@ function initGuestUpgrade(user, { form, name, email, terms }) {
     sentTo.textContent = email.value.trim();
     document.getElementById('check-email-text').replaceChildren(
       'We sent a link to ', sentTo,
-      '. Open it to confirm your email and choose a password. Until then you can keep chatting as a guest.',
+      '. Open it to confirm your email and choose a password. Until then you can keep chatting as you are.',
     );
     const next = document.getElementById('check-email-next');
     next.href = 'chat.html';
@@ -262,7 +238,7 @@ async function initResetPassword() {
     showPanel('invalid-link');
     return;
   }
-  // a guest who just confirmed their email is choosing their first password
+  // someone who chatted without an account and just confirmed their email is choosing their first password
   const finishing = queryParams.has('finish');
   if (finishing) {
     document.querySelector('[data-panel="new-password"] h1').textContent = 'Create your password';
@@ -426,7 +402,7 @@ function friendlyError(error) {
     return 'An account with this email already exists. Try logging in instead.';
   }
   if (code === 'email_exists' || /already been registered/i.test(message)) {
-    return 'That email already has an account. Log in to it instead (your guest chats stay with this guest session).';
+    return 'That email already has an account. Log in to it instead (chats from this session stay here).';
   }
   if (/anonymous user/i.test(message)) return 'Open the link we emailed you first, then choose your password.';
   if (code === 'weak_password') return 'That password is too easy to guess. Try a longer one with a mix of characters.';

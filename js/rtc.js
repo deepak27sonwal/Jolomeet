@@ -5,6 +5,7 @@
 //   offer / answer - session descriptions, only the initiator makes offers
 //   ice    - network candidates, queued until the remote description is set
 //   bye    - the other person hung up
+// Anything else (e.g. camera on/off) is left to the page.
 import { ICE_SERVERS } from './config.js';
 
 export class CallPeer {
@@ -78,6 +79,12 @@ export class CallPeer {
   /** True once the offer/answer exchange has started (stop re-sending "ready"). */
   get negotiating() {
     return Boolean(this.pc.remoteDescription || this.pc.localDescription);
+  }
+
+  /** Swaps the outgoing camera or microphone track (e.g. front ↔ back camera) without renegotiating. */
+  async replaceTrack(kind, track) {
+    const sender = this.pc.getSenders().find((s) => s.track?.kind === kind);
+    if (sender) await sender.replaceTrack(track);
   }
 
   async flushIce() {

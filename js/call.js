@@ -1,26 +1,72 @@
-// Random audio call page: microphone → matchmaking → peer-to-peer voice call.
+// Random audio and video calls (audio.html, video.html):
+// camera/microphone → matchmaking → peer-to-peer call.
+// The page picks the mode with <body data-mode="audio|video">.
 import { initApp, toast, storage } from './app.js';
 import { STORAGE_KEYS } from './config.js';
 import * as api from './api.js';
 import { CallPeer, watchAudioLevel } from './rtc.js';
 import { icon, esc, avatarHtml, friendlyError } from './ui.js';
 import { confirmAction, openReportDialog } from './dialogs.js';
+import { askAboutYou } from './quick-start.js';
 
+const MODE = document.body.dataset.mode === 'video' ? 'video' : 'audio';
+const VIDEO = MODE === 'video';
 const MATCH_POLL_MS = 4000;
 const READY_RESEND_MS = 2000;
 const CONNECT_TIMEOUT_MS = 25_000;
 const DISCONNECT_GRACE_MS = 8000;
+const MEDIA_SCREENS = ['searching', 'connecting', 'live'];
+
+const COPY = {
+  audio: {
+    title: 'Random Audio Call',
+    lead: 'Talk to someone new, voice only. No camera, no profile needed to start.',
+    start: 'Start Audio Call',
+    startIcon: 'phone',
+    orb: 'mic',
+    note: 'Your browser will ask to use your microphone.',
+    permissionTitle: 'Allow microphone access',
+    permissionLead: 'Your browser is asking to use your microphone. Choose <strong>Allow</strong> so the other person can hear you.',
+    blockedTitle: 'Microphone access is blocked',
+    blockedLead: 'Allow microphone access for this site in your browser settings, then try again.',
+    searching: 'Finding someone to talk to…',
+    reportContext: 'audio_call',
+  },
+  video: {
+    title: 'Random Video Chat',
+    lead: 'Meet someone new face to face. You can turn your camera off at any time.',
+    start: 'Start Video Chat',
+    startIcon: 'video',
+    orb: 'video',
+    note: 'Your browser will ask to use your camera and microphone.',
+    permissionTitle: 'Allow camera and microphone',
+    permissionLead: 'Your browser is asking to use your camera and microphone. Choose <strong>Allow</strong> so the other person can see and hear you.',
+    blockedTitle: 'Camera and microphone are blocked',
+    blockedLead: 'Allow camera and microphone access for this site in your browser settings, then try again.',
+    searching: 'Finding someone to meet…',
+    reportContext: 'video_call',
+  },
+}[MODE];
 
 const stage = document.getElementById('call-stage');
-const remoteAudio = document.getElementById('remote-audio');
+const screen = document.getElementById('call-screen');       // video only
+const remoteVideo = document.getElementById('remote-video'); // video only
+const localVideo = document.getElementById('local-video');   // video only
+const selfTile = document.getElementById('self-tile');       // video only
+const remoteOff = document.getElementById('remote-off');     // video only
+const remoteAudio = document.getElementById('remote-audio'); // audio only
 
 const state = {
   me: null,
   labels: {},
-  mic: null,         // local MediaStream, kept between calls
+  media: null,       // local MediaStream, kept between calls while searching
   muted: false,
+  cameraOff: false,
+  facing: 'user',
+  canSwitchCamera: false,
   search: null,      // { startedAt, timers, busy }
   call: null,        // the current match (see connect)
+  lastCall: null,
   screen: 'loading',
 };
 
@@ -34,9 +80,12 @@ async function init() {
   } catch {
     /* treated as signed out */
   }
+  // random calls need no account: ask for a name, gender and age, then go straight in
+  const firstVisit = !session;
   if (!session) {
-    window.location.replace(`login.html?next=${encodeURIComponent('audio.html')}`);
-    return;
+    stage.dataset.screen = 'about-you';
+    stage.setAttribute('aria-busy', 'false');
+    session = await askAboutYou(stage, { action: COPY.start, next: `${MODE}.html` });
   }
   state.me = session.user;
 
@@ -58,7 +107,8 @@ async function init() {
     },
   }).catch(() => {});
 
-  renderStart();
+  if (firstVisit) startSearch();
+  else renderStart();
 }
 
 /* =========================================================================
@@ -70,6 +120,13 @@ function setScreen(name, html) {
   stage.dataset.screen = name;
   stage.setAttribute('aria-busy', 'false');
   stage.innerHTML = html;
+  if (VIDEO) {
+    const media = MEDIA_SCREENS.includes(name);
+    screen.dataset.screen = name;
+    screen.classList.toggle('is-media', media);
+    document.body.classList.toggle('in-call', media);
+    updateRemoteOff();
+  }
 }
 
 function interests() {
@@ -87,20 +144,34 @@ function chipsHtml(slugs, shared = []) {
 function renderStart() {
   const mine = interests();
   setScreen('start', `
-    <div class="call-orb" aria-hidden="true"><span class="call-orb__core">${icon('mic')}</span></div>
-    <h1>Random Audio Call</h1>
-    <p class="call-lead">Talk to someone new, voice only. No camera, no profile needed to start.</p>
+    <div class="call-orb" aria-hidden="true"><span class="call-orb__core">${icon(COPY.orb)}</span></div>
+    <h1>${COPY.title}</h1>
+    <p class="call-lead">${COPY.lead}</p>
     ${mine.length
       ? `<div class="call-interests"><p class="text-muted">Matching on your interests</p>${chipsHtml(mine)}</div>`
-      : '<p class="text-muted call-tip">Tip: pick interests on the <a href="index.html#vibe-title">homepage</a> to talk with people who like the same things.</p>'}
-    <button class="btn btn--primary btn--lg call-start" type="button" data-action="start">${icon('phone')}Start Audio Call</button>
-    <p class="call-note">${icon('mic', 'icon icon--sm')}Your browser will ask to use your microphone.</p>`);
+      : '<p class="text-muted call-tip">Tip: pick interests on the <a href="index.html#vibe-title">homepage</a> to meet people who like the same things.</p>'}
+    <button class="btn btn--primary btn--lg call-start" type="button" data-action="start">${icon(COPY.startIcon)}${COPY.start}</button>
+    <p class="call-note">${icon(COPY.orb, 'icon icon--sm')}${COPY.note}</p>`);
 }
 
 function renderSearching() {
+  if (VIDEO) {
+    setScreen('searching', `
+      <div class="call-overlay call-overlay--center">
+        <span class="call-searching-dot" aria-hidden="true"></span>
+        <h1>${COPY.searching}</h1>
+        <p class="call-timer" id="search-timer">0:00</p>
+        ${chipsHtml(interests())}
+      </div>
+      <div class="call-controls">
+        ${muteButtonHtml()}${cameraButtonHtml()}${switchButtonHtml()}
+        <button class="btn btn--secondary" type="button" data-action="cancel">Cancel</button>
+      </div>`);
+    return;
+  }
   setScreen('searching', `
     <div class="call-orb call-orb--searching" aria-hidden="true"><span class="call-orb__core">${icon('phone')}</span></div>
-    <h1>Finding someone to talk to…</h1>
+    <h1>${COPY.searching}</h1>
     <p class="call-timer" id="search-timer">0:00</p>
     ${chipsHtml(interests())}
     <div class="call-actions">
@@ -110,9 +181,12 @@ function renderSearching() {
 }
 
 function renderConnecting() {
-  const c = state.call;
+  if (VIDEO) {
+    setScreen('connecting', `${hudHtml(state.call, false)}${videoControlsHtml()}`);
+    return;
+  }
   setScreen('connecting', `
-    ${partnerHtml(c)}
+    ${partnerHtml(state.call)}
     <p class="call-status">${icon('phone', 'icon icon--sm')}Connecting…</p>
     <div class="call-actions">
       ${muteButtonHtml()}
@@ -122,9 +196,13 @@ function renderConnecting() {
 }
 
 function renderLive() {
-  const c = state.call;
+  if (VIDEO) {
+    setScreen('live', `${hudHtml(state.call, true)}${videoControlsHtml()}`);
+    tickCallTimer();
+    return;
+  }
   setScreen('live', `
-    ${partnerHtml(c)}
+    ${partnerHtml(state.call)}
     <p class="call-timer" id="call-timer" aria-label="Call duration">0:00</p>
     <div class="call-actions">
       ${muteButtonHtml()}
@@ -136,6 +214,35 @@ function renderLive() {
       <button class="btn btn--ghost btn--sm" type="button" data-action="block">${icon('ban', 'icon icon--sm')}Block</button>
     </div>`);
   tickCallTimer();
+}
+
+/** Video: name, timer and safety buttons over the other person's video. */
+function hudHtml(c, live) {
+  const age = (c.age ? `, ${esc(c.age)}` : '') + (c.gender ? ` · ${esc(c.gender)}` : '');
+  return `
+    <div class="call-hud">
+      <div class="call-hud__who">
+        ${avatarHtml(c.name, c.avatarUrl)}
+        <div>
+          <strong>${esc(c.name)}${age}</strong>
+          <span>${live ? '<span id="call-timer" aria-label="Call duration">0:00</span>' : 'Connecting…'}${c.remoteMuted ? ` · ${icon('mic-off', 'icon icon--sm')} Muted` : ''}</span>
+        </div>
+      </div>
+      <div class="call-hud__safety">
+        <button class="call-icon-btn" type="button" data-action="report" aria-label="Report ${esc(c.name)}" title="Report">${icon('flag')}</button>
+        <button class="call-icon-btn" type="button" data-action="block" aria-label="Block ${esc(c.name)}" title="Block">${icon('ban')}</button>
+      </div>
+    </div>
+    ${c.shared.length ? `<div class="call-hud__shared"><span>You both like</span>${chipsHtml(c.shared, c.shared)}</div>` : ''}`;
+}
+
+function videoControlsHtml() {
+  return `
+    <div class="call-controls">
+      ${muteButtonHtml()}${cameraButtonHtml()}${switchButtonHtml()}
+      <button class="btn btn--secondary" type="button" data-action="next">${icon('skip', 'icon icon--sm')}Next</button>
+      <button class="call-hangup" type="button" data-action="end" aria-label="End call">${icon('phone-off')}</button>
+    </div>`;
 }
 
 function renderEnded(reason, { duration = 0, call = null } = {}) {
@@ -152,7 +259,7 @@ function renderEnded(reason, { duration = 0, call = null } = {}) {
     blocked: `${call?.name || 'This person'} is blocked. You won’t be matched with them again.`,
   };
   setScreen('ended', `
-    <div class="call-orb call-orb--ended" aria-hidden="true"><span class="call-orb__core">${icon('phone-off')}</span></div>
+    <div class="call-orb call-orb--ended" aria-hidden="true"><span class="call-orb__core">${icon(VIDEO ? 'video' : 'phone-off')}</span></div>
     <h1>${esc(titles[reason] || titles.me)}</h1>
     ${duration >= 1 ? `<p class="call-timer">${formatDuration(duration)}</p>` : ''}
     ${notes[reason] ? `<p class="call-lead">${esc(notes[reason])}</p>` : ''}
@@ -164,35 +271,66 @@ function renderEnded(reason, { duration = 0, call = null } = {}) {
   state.lastCall = call;
 }
 
-function renderError(title, message, { retry = true } = {}) {
+function renderError(title, message, { retry = true, extra = '' } = {}) {
   setScreen('error', `
     <div class="call-orb call-orb--ended" aria-hidden="true"><span class="call-orb__core">${icon('alert')}</span></div>
     <h1>${esc(title)}</h1>
     <p class="call-lead">${esc(message)}</p>
     <div class="call-actions">
       ${retry ? `<button class="btn btn--primary btn--lg" type="button" data-action="start">${icon('refresh')}Try Again</button>` : ''}
+      ${extra}
       <a class="btn btn--secondary btn--lg" href="index.html">Back Home</a>
     </div>`);
 }
 
+/** Audio: big avatar with a ring that moves with the other person's voice. */
 function partnerHtml(c) {
-  const age = c.age ? `<span class="text-muted">, ${esc(c.age)}</span>` : '';
+  const details = [c.age, c.gender].filter(Boolean).map(esc).join(' · ');
   return `
     <div class="call-partner">
       <div class="call-voice" id="call-voice" aria-hidden="true">${avatarHtml(c.name, c.avatarUrl, 'call-avatar')}</div>
-      <h1>${esc(c.name)}${age}</h1>
+      <h1>${esc(c.name)}</h1>
+      ${details ? `<p class="call-details">${details}</p>` : ''}
       ${c.shared.length ? `<p class="text-muted">You both like</p>${chipsHtml(c.shared, c.shared)}` : ''}
     </div>`;
 }
 
 function muteButtonHtml() {
   return `<button class="call-mute" type="button" data-action="mute" aria-pressed="${state.muted}"
-    aria-label="${state.muted ? 'Unmute microphone' : 'Mute microphone'}">${icon(state.muted ? 'mic-off' : 'mic')}</button>`;
+    aria-label="${state.muted ? 'Unmute microphone' : 'Mute microphone'}" title="${state.muted ? 'Unmute' : 'Mute'}">${icon(state.muted ? 'mic-off' : 'mic')}</button>`;
+}
+
+function cameraButtonHtml() {
+  if (!VIDEO) return '';
+  return `<button class="call-mute" type="button" data-action="camera" aria-pressed="${state.cameraOff}"
+    aria-label="${state.cameraOff ? 'Turn camera on' : 'Turn camera off'}" title="${state.cameraOff ? 'Camera on' : 'Camera off'}">${icon(state.cameraOff ? 'video-off' : 'video')}</button>`;
+}
+
+function switchButtonHtml() {
+  if (!VIDEO || !state.canSwitchCamera) return '';
+  return `<button class="call-mute" type="button" data-action="switch-camera" aria-label="Switch camera" title="Switch camera">${icon('refresh')}</button>`;
+}
+
+function refreshControls() {
+  stage.querySelectorAll('[data-action="mute"]').forEach((b) => { b.outerHTML = muteButtonHtml(); });
+  stage.querySelectorAll('[data-action="camera"]').forEach((b) => { b.outerHTML = cameraButtonHtml(); });
 }
 
 function formatDuration(seconds) {
   const m = Math.floor(seconds / 60);
   return `${m}:${String(Math.floor(seconds % 60)).padStart(2, '0')}`;
+}
+
+/** Video: the other person's tile shows their picture while connecting or when their camera is off. */
+function updateRemoteOff() {
+  if (!VIDEO) return;
+  const c = state.call;
+  const show = Boolean(c) && (state.screen === 'connecting' || (state.screen === 'live' && c.remoteCameraOff));
+  remoteOff.hidden = !show;
+  if (show) {
+    remoteOff.innerHTML = `${avatarHtml(c.name, c.avatarUrl, 'call-avatar')}<p>${state.screen === 'connecting' ? 'Connecting…' : `${esc(c.name)} turned their camera off`}</p>`;
+  }
+  selfTile.classList.toggle('is-off', state.cameraOff);
 }
 
 /* =========================================================================
@@ -206,58 +344,120 @@ function onStageClick(event) {
     start: startSearch,
     cancel: cancelSearch,
     mute: toggleMute,
+    camera: toggleCamera,
+    'switch-camera': switchCamera,
     next: () => endCall('me', { next: true }),
     end: () => endCall('me'),
     report: () => report(state.call),
     'report-ended': () => report(state.lastCall),
-    block: block,
+    block,
   };
   actions[button.dataset.action]?.();
 }
 
-async function ensureMicrophone() {
-  if (state.mic?.getAudioTracks().some((t) => t.readyState === 'live')) return true;
+function mediaIsLive() {
+  return Boolean(state.media?.getTracks().some((t) => t.readyState === 'live'));
+}
+
+async function ensureMedia() {
+  if (mediaIsLive()) return true;
   if (!navigator.mediaDevices?.getUserMedia || !window.RTCPeerConnection) {
-    renderError('Calls aren’t supported here', 'Your browser can’t make voice calls. Try the latest Chrome, Safari, Edge or Firefox.', { retry: false });
+    renderError('Calls aren’t supported here', 'Your browser can’t make calls. Try the latest Chrome, Safari, Edge or Firefox.', { retry: false });
     return false;
   }
   // the browser shows its own permission prompt; explain what it's for
   setScreen('permission', `
-    <div class="call-orb" aria-hidden="true"><span class="call-orb__core">${icon('mic')}</span></div>
-    <h1>Allow microphone access</h1>
-    <p class="call-lead">Your browser is asking to use your microphone. Choose <strong>Allow</strong> so the other person can hear you.</p>`);
+    <div class="call-orb" aria-hidden="true"><span class="call-orb__core">${icon(COPY.orb)}</span></div>
+    <h1>${COPY.permissionTitle}</h1>
+    <p class="call-lead">${COPY.permissionLead}</p>`);
   try {
-    state.mic = await navigator.mediaDevices.getUserMedia({
+    state.media = await navigator.mediaDevices.getUserMedia({
       audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
-      video: false,
+      video: VIDEO ? { facingMode: state.facing, width: { ideal: 1280 }, height: { ideal: 720 } } : false,
     });
-    state.mic.getAudioTracks().forEach((t) => { t.enabled = !state.muted; });
-    return true;
   } catch (error) {
-    if (error?.name === 'NotAllowedError' || error?.name === 'SecurityError') {
-      renderError('Microphone access is blocked', 'Allow microphone access for this site in your browser settings, then try again.');
-    } else if (error?.name === 'NotFoundError' || error?.name === 'OverconstrainedError') {
-      renderError('No microphone found', 'Connect a microphone or headset and try again.');
-    } else if (error?.name === 'NotReadableError') {
-      renderError('Your microphone is busy', 'Another app is using your microphone. Close it and try again.');
-    } else {
-      renderError('Couldn’t start your microphone', 'Please try again.');
-    }
+    showMediaError(error);
     return false;
+  }
+  state.media.getAudioTracks().forEach((t) => { t.enabled = !state.muted; });
+  state.media.getVideoTracks().forEach((t) => { t.enabled = !state.cameraOff; });
+  if (VIDEO) {
+    localVideo.srcObject = state.media;
+    localVideo.classList.toggle('is-mirrored', state.facing === 'user');
+    localVideo.play().catch(() => {});
+    try {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      state.canSwitchCamera = devices.filter((d) => d.kind === 'videoinput').length > 1;
+    } catch {
+      state.canSwitchCamera = false;
+    }
+  }
+  return true;
+}
+
+function showMediaError(error) {
+  const audioInstead = VIDEO ? '<a class="btn btn--secondary btn--lg" href="audio.html">Try an Audio Call</a>' : '';
+  if (error?.name === 'NotAllowedError' || error?.name === 'SecurityError') {
+    renderError(COPY.blockedTitle, COPY.blockedLead);
+  } else if (error?.name === 'NotFoundError' || error?.name === 'OverconstrainedError') {
+    renderError(VIDEO ? 'No camera found' : 'No microphone found',
+      VIDEO ? 'Connect a camera, or have a voice-only call instead.' : 'Connect a microphone or headset and try again.',
+      { extra: audioInstead });
+  } else if (error?.name === 'NotReadableError') {
+    renderError(VIDEO ? 'Your camera is busy' : 'Your microphone is busy',
+      `Another app is using your ${VIDEO ? 'camera or microphone' : 'microphone'}. Close it and try again.`);
+  } else {
+    renderError(`Couldn’t start your ${VIDEO ? 'camera' : 'microphone'}`, 'Please try again.');
   }
 }
 
 function toggleMute() {
   state.muted = !state.muted;
-  state.mic?.getAudioTracks().forEach((t) => { t.enabled = !state.muted; });
-  stage.querySelectorAll('[data-action="mute"]').forEach((b) => b.outerHTML = muteButtonHtml());
+  state.media?.getAudioTracks().forEach((t) => { t.enabled = !state.muted; });
+  refreshControls();
+  sendMediaState();
   toast(state.muted ? 'Microphone muted' : 'Microphone on');
+}
+
+function toggleCamera() {
+  state.cameraOff = !state.cameraOff;
+  state.media?.getVideoTracks().forEach((t) => { t.enabled = !state.cameraOff; });
+  refreshControls();
+  updateRemoteOff();
+  sendMediaState();
+  toast(state.cameraOff ? 'Camera off' : 'Camera on');
+}
+
+/** Front ↔ back camera on phones; the call keeps going on the new track. */
+async function switchCamera() {
+  if (!state.media) return;
+  const facing = state.facing === 'user' ? 'environment' : 'user';
+  let fresh;
+  try {
+    fresh = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { exact: facing } }, audio: false });
+  } catch {
+    toast('Couldn’t switch camera.', { type: 'error' });
+    return;
+  }
+  const [track] = fresh.getVideoTracks();
+  track.enabled = !state.cameraOff;
+  state.media.getVideoTracks().forEach((old) => { old.stop(); state.media.removeTrack(old); });
+  state.media.addTrack(track);
+  state.facing = facing;
+  localVideo.srcObject = state.media;
+  localVideo.classList.toggle('is-mirrored', facing === 'user');
+  await state.call?.peer?.replaceTrack('video', track).catch(() => {});
+}
+
+/** Lets the other side show "Muted" / "camera off" instead of silence or a black frame. */
+function sendMediaState() {
+  state.call?.channel?.send({ kind: 'media', muted: state.muted, cameraOff: state.cameraOff });
 }
 
 /* ---------- matchmaking ---------- */
 
 async function startSearch() {
-  if (!(await ensureMicrophone())) return;
+  if (!(await ensureMedia())) return;
   stopSearch();
   renderSearching();
   const search = { startedAt: Date.now(), timers: [], busy: false };
@@ -276,12 +476,14 @@ async function pollMatch() {
   search.busy = true;
   let result;
   try {
-    result = await api.requestMatch('audio', interests());
+    result = await api.requestMatch(MODE, interests());
   } catch (error) {
     if (state.search !== search) return;
     stopSearch();
+    releaseMedia();
     if (error?.code === 'PGRST202') {
-      renderError('Audio calls aren’t available yet', 'Matching hasn’t been switched on for JoloMeet yet. Please check back soon.', { retry: false });
+      renderError(`${VIDEO ? 'Video chat isn’t' : 'Audio calls aren’t'} available yet`,
+        'Matching hasn’t been switched on for JoloMeet yet. Please check back soon.', { retry: false });
     } else {
       renderError('Couldn’t start searching', friendlyError(error));
     }
@@ -302,7 +504,7 @@ function stopSearch() {
 function cancelSearch() {
   stopSearch();
   api.leaveMatchQueue().catch(() => {});
-  releaseMicrophone();
+  releaseMedia();
   renderStart();
 }
 
@@ -318,6 +520,9 @@ async function connect(match) {
     name: 'Someone new',
     avatarUrl: null,
     age: null,
+    gender: '',
+    remoteMuted: false,
+    remoteCameraOff: false,
     startedAt: 0,
     timers: [],
     peer: null,
@@ -328,20 +533,25 @@ async function connect(match) {
   state.call = call;
   renderConnecting();
 
-  api.getProfile(call.partnerId).then((p) => {
+  Promise.all([api.getProfile(call.partnerId), api.getGenderLabel(call.partnerId).catch(() => '')]).then(([p, gender]) => {
     if (!p || state.call !== call) return;
     call.name = p.display_name || call.name;
     call.avatarUrl = api.publicImageUrl('avatars', p.avatar_path);
     call.age = p.age;
-    if (state.screen === 'connecting') renderConnecting();
-    if (state.screen === 'live') renderLive();
+    call.gender = gender;
+    rerenderCall(call);
   }).catch(() => {});
 
   call.peer = new CallPeer({
-    stream: state.mic,
+    stream: state.media,
     initiator: call.initiator,
     send: (payload) => call.channel?.send(payload),
     onRemoteStream: (stream) => {
+      if (VIDEO) {
+        remoteVideo.srcObject = stream;
+        remoteVideo.play().catch(() => {});
+        return;
+      }
       remoteAudio.srcObject = stream;
       remoteAudio.play().catch(() => {});
       call.stopLevel?.();
@@ -357,9 +567,13 @@ async function connect(match) {
       if (state.call !== call) return;
       if (message?.kind === 'bye') {
         endCall('partner');
-        return;
+      } else if (message?.kind === 'media') {
+        call.remoteMuted = Boolean(message.muted);
+        call.remoteCameraOff = Boolean(message.cameraOff);
+        rerenderCall(call);
+      } else {
+        call.peer.handle(message).catch(() => {});
       }
-      call.peer.handle(message).catch(() => {});
     }, (status) => {
       if (state.call !== call) return;
       if (status === 'SUBSCRIBED') {
@@ -380,6 +594,12 @@ async function connect(match) {
   }, CONNECT_TIMEOUT_MS));
 }
 
+function rerenderCall(call) {
+  if (state.call !== call) return;
+  if (state.screen === 'connecting') renderConnecting();
+  if (state.screen === 'live') renderLive();
+}
+
 function onPeerState(call, pcState) {
   if (state.call !== call) return;
   if (pcState === 'connected') {
@@ -387,6 +607,7 @@ function onPeerState(call, pcState) {
     if (!call.startedAt) {
       call.startedAt = Date.now();
       renderLive();
+      sendMediaState();
       call.timers.push(setInterval(tickCallTimer, 1000));
     }
   } else if (pcState === 'disconnected') {
@@ -424,7 +645,7 @@ async function endCall(reason, { next = false } = {}) {
     startSearch();
     return;
   }
-  releaseMicrophone(); // don't keep the mic (and the browser's "in use" light) on between calls
+  releaseMedia(); // don't keep the camera/mic (and the browser's "in use" light) on between calls
   renderEnded(reason, { duration, call: { name: call.name, partnerId: call.partnerId, sessionId: call.sessionId, conversationId: call.conversationId } });
 }
 
@@ -435,12 +656,14 @@ function teardown(call) {
   call.peer?.close();
   // let the bye message go out before leaving the channel
   setTimeout(() => call.channel?.leave(), 300);
-  remoteAudio.srcObject = null;
+  if (remoteAudio) remoteAudio.srcObject = null;
+  if (remoteVideo) remoteVideo.srcObject = null;
 }
 
-function releaseMicrophone() {
-  state.mic?.getTracks().forEach((t) => t.stop());
-  state.mic = null;
+function releaseMedia() {
+  state.media?.getTracks().forEach((t) => t.stop());
+  state.media = null;
+  if (localVideo) localVideo.srcObject = null;
 }
 
 function leaveEverything() {
@@ -451,7 +674,7 @@ function leaveEverything() {
     api.endMatchSession(call.sessionId, 'ended').catch(() => {});
     teardown(call);
   }
-  releaseMicrophone();
+  releaseMedia();
 }
 
 /* ---------- safety ---------- */
@@ -463,7 +686,7 @@ function report(call) {
     onSubmit: async ({ reason, details, alsoBlock }) => {
       await api.reportUser({
         reportedUserId: call.partnerId,
-        context: 'audio_call',
+        context: COPY.reportContext,
         reason,
         details,
         conversationId: call.conversationId,

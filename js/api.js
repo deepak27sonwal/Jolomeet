@@ -65,15 +65,30 @@ export async function signIn({ email, password }) {
   return data;
 }
 
-/** Guest access: an anonymous account plus the 18+ age confirmation. */
-export async function signInAsGuest(birthDate) {
-  const { error } = await supabase.auth.signInAnonymously();
+export const GENDERS = { female: 'Female', male: 'Male', nonbinary: 'Non-binary' };
+
+/**
+ * Random chat without an account: an anonymous session created with the
+ * visitor's name, gender and age (no email or password). The age is stored as
+ * an approximate birth date so the database's 18+ checks apply, and it is shown
+ * to the people they match with. gender: a GENDERS key, or '' to not say.
+ */
+export async function startRandomSession({ name, gender, age }) {
+  const birth = new Date();
+  birth.setFullYear(birth.getFullYear() - age);
+  birth.setDate(birth.getDate() - 182); // middle of that year of age
+  const { error } = await supabase.auth.signInAnonymously({
+    options: {
+      data: {
+        display_name: name,
+        gender: gender || null,
+        birth_date: birth.toISOString().slice(0, 10),
+        show_age: 'true',
+        accepted_terms: 'true',
+      },
+    },
+  });
   if (error) throw error;
-  const { error: ageError } = await supabase.rpc('confirm_age', { p_birth_date: birthDate });
-  if (ageError) {
-    await supabase.auth.signOut();
-    throw ageError;
-  }
 }
 
 /**
@@ -138,6 +153,13 @@ export async function getProfile(userId) {
   const { data, error } = await supabase.rpc('get_profile', { p_user_id: userId });
   if (error) throw error;
   return data?.[0] ?? null;
+}
+
+/** Gender label for someone you can see (e.g. your current match), or '' if not given. */
+export async function getGenderLabel(userId) {
+  const { data, error } = await supabase.from('profiles').select('gender').eq('id', userId).maybeSingle();
+  if (error) throw error;
+  return GENDERS[data?.gender] || '';
 }
 
 /** The signed-in user's own editable profile row (includes privacy flags). */
