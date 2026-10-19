@@ -98,10 +98,7 @@ export function toast(message, { type = 'info', duration = 4000 } = {}) {
   el.className = `toast toast--${type}`;
   el.textContent = message;
   region.append(el);
-  setTimeout(() => {
-    el.classList.add('is-leaving');
-    el.addEventListener('transitionend', () => el.remove(), { once: true });
-  }, duration);
+  setTimeout(() => el.remove(), duration);
 }
 
 /** localStorage can be unavailable (private mode, blocked storage), so never let it throw. */

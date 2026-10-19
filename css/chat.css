@@ -302,9 +302,6 @@
   margin-bottom: var(--space-2);
 }
 
-/* only messages that arrive while the chat is open animate in */
-.msg--new { animation: msg-in var(--duration-slow) var(--ease-out); }
-
 .msg--in { align-items: flex-start; margin-right: auto; }
 .msg--out { align-items: flex-end; margin-left: auto; }
 
@@ -379,11 +376,6 @@
   color: var(--color-text-muted);
   font-size: var(--text-xs);
   text-align: center;
-}
-
-@keyframes msg-in {
-  from { opacity: 0; transform: translateY(6px); }
-  to { opacity: 1; transform: none; }
 }
 
 .typing {
@@ -644,7 +636,7 @@
 @keyframes spin { to { transform: rotate(360deg); } }
 
 @media (prefers-reduced-motion: reduce) {
-  .spinner, .match-pulse::before, .match-pulse::after, .typing span, .msg { animation: none; }
+  .spinner, .match-pulse::before, .match-pulse::after, .typing span { animation: none; }
 }
 
 /* "About you" form shown in place of a conversation before random chat */

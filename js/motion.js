@@ -1,4 +1,4 @@
-// Scroll reveal: sections slide in as they come into view.
+// Homepage scroll reveal: sections slide in as they come into view.
 // Content stays fully visible without JavaScript or with reduced motion.
 
 const TARGETS = [
@@ -14,6 +14,7 @@ const STAGGER_MS = 90;
 const MAX_STAGGER = 4;
 
 export function initReveal() {
+  if (document.body.dataset.page !== 'home') return; // other pages don't animate
   if (!('IntersectionObserver' in window)) return;
   if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
 

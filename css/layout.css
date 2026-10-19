@@ -165,20 +165,10 @@
   background: var(--color-bg);
   border-top: 1px solid var(--color-border);
   overflow-y: auto;
-  opacity: 0;
   visibility: hidden;
-  transform: translateY(-8px);
-  transition: opacity var(--duration-base) var(--ease-out),
-              transform var(--duration-base) var(--ease-out),
-              visibility 0s linear var(--duration-base);
 }
 
-.mobile-menu.is-open {
-  opacity: 1;
-  visibility: visible;
-  transform: none;
-  transition-delay: 0s;
-}
+.mobile-menu.is-open { visibility: visible; }
 
 .mobile-menu__link {
   display: flex;
