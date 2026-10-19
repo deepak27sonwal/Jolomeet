@@ -1,13 +1,13 @@
 // Random audio and video calls (audio.html, video.html):
 // camera/microphone → matchmaking → peer-to-peer call.
 // The page picks the mode with <body data-mode="audio|video">.
-import { initApp, toast, storage } from './app.js';
-import { STORAGE_KEYS } from './config.js';
+import { initApp, toast } from './app.js';
 import * as api from './api.js';
 import { CallPeer, watchAudioLevel } from './rtc.js';
 import { icon, esc, avatarHtml, friendlyError } from './ui.js';
 import { confirmAction, openReportDialog } from './dialogs.js';
 import { askAboutYou } from './quick-start.js';
+import { interestPickerHtml, mountInterestPicker, savedInterests } from './interest-picker.js';
 
 const MODE = document.body.dataset.mode === 'video' ? 'video' : 'audio';
 const VIDEO = MODE === 'video';
@@ -81,18 +81,16 @@ async function init() {
     /* treated as signed out */
   }
   // random calls need no account: ask for a name, gender and age, then go straight in
-  const firstVisit = !session;
   if (!session) {
     stage.dataset.screen = 'about-you';
     stage.setAttribute('aria-busy', 'false');
-    session = await askAboutYou(stage, { action: COPY.start, next: `${MODE}.html` });
+    session = await askAboutYou(stage, { action: 'Continue', next: `${MODE}.html` });
   }
   state.me = session.user;
 
   api.fetchInterests()
     .then((rows) => {
       state.labels = Object.fromEntries(rows.map((r) => [r.slug, r.label]));
-      if (state.screen === 'start') renderStart();
     })
     .catch(() => {});
 
@@ -107,8 +105,7 @@ async function init() {
     },
   }).catch(() => {});
 
-  if (firstVisit) startSearch();
-  else renderStart();
+  renderStart();
 }
 
 /* =========================================================================
@@ -130,8 +127,7 @@ function setScreen(name, html) {
 }
 
 function interests() {
-  const saved = storage.get(STORAGE_KEYS.interests, []);
-  return Array.isArray(saved) ? saved.filter((s) => typeof s === 'string').slice(0, 10) : [];
+  return savedInterests();
 }
 
 function chipsHtml(slugs, shared = []) {
@@ -142,16 +138,14 @@ function chipsHtml(slugs, shared = []) {
 }
 
 function renderStart() {
-  const mine = interests();
   setScreen('start', `
     <div class="call-orb" aria-hidden="true"><span class="call-orb__core">${icon(COPY.orb)}</span></div>
     <h1>${COPY.title}</h1>
     <p class="call-lead">${COPY.lead}</p>
-    ${mine.length
-      ? `<div class="call-interests"><p class="text-muted">Matching on your interests</p>${chipsHtml(mine)}</div>`
-      : '<p class="text-muted call-tip">Tip: pick interests on the <a href="index.html#vibe-title">homepage</a> to meet people who like the same things.</p>'}
+    ${interestPickerHtml()}
     <button class="btn btn--primary btn--lg call-start" type="button" data-action="start">${icon(COPY.startIcon)}${COPY.start}</button>
     <p class="call-note">${icon(COPY.orb, 'icon icon--sm')}${COPY.note}</p>`);
+  mountInterestPicker(stage);
 }
 
 function renderSearching() {

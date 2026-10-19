@@ -2,7 +2,6 @@
 // Content stays fully visible without JavaScript or with reduced motion.
 
 const TARGETS = [
-  '.vibe-section .container > *',
   '.section-header',
   '.way',
   '.feature-card',

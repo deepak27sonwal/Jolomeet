@@ -35,6 +35,7 @@ python3 -m http.server 8000
 - `css/motion.css`, `js/motion.js`, `js/page-transition.js`: pages slide in from the right (back slides the other way), scroll reveals and hover effects (off when the device asks for reduced motion)
 - `js/config.js`: public Supabase URL and publishable key (safe for browsers; all data is protected by RLS)
 - `js/api.js`: every Supabase call goes through here
+- `js/interest-picker.js`: interest chips shown right before matching (random chat, audio, video); the choice is remembered on the device
 - `js/call.js`: the audio and video call pages (`<body data-mode="audio|video">`)
 - `js/rtc.js`: WebRTC connection and signalling protocol shared by calls; STUN/TURN servers are in `js/config.js`
 - `js/app.js`, `js/navigation.js`: shared setup, toasts, header/menu behaviour, signed-in header
