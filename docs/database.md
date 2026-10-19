@@ -95,6 +95,7 @@ Errors use custom SQLSTATE codes that the UI can map to messages:
 ## Calls (WebRTC)
 
 - `chat_mode` is `text`, `video` or `audio` (`20261018000000_audio_calls.sql`); `request_match` pairs people in the same mode only.
+- Re-matching (`20261019010000_rematch_rule.sql`): right after one of two people pressed Next, they aren't paired again in that mode for 2 minutes; otherwise people matched in the last 10 minutes are allowed but someone new is preferred. (Before this, any two people matched in the last 10 minutes, in any mode, could not be paired at all, so with few people online, e.g. trying audio or video right after a text chat, both just waited.)
 - After a match, both browsers join the private Realtime channel `match:<session id>` (only the session's two participants are authorized) and exchange WebRTC offer/answer/ICE messages there. Audio and video flow directly between the two browsers; nothing is recorded or stored. Besides the WebRTC messages, the pages send `{ kind: 'media', muted, cameraOff }` so each side can show the other's mute/camera state.
 - `js/config.js` lists public STUN servers. Calls between people on very strict networks (some offices, schools, mobile carriers) need a TURN relay as well; add one from a TURN provider to `ICE_SERVERS` when needed.
 - Reports from a call use the `audio_call` (or `video_call`) context with the session id.
