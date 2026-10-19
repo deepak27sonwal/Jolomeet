@@ -316,14 +316,13 @@
   background: var(--color-bg-blush);
   color: var(--color-text);
   text-decoration: none;
-  transition: transform var(--duration-base) var(--ease-out), border-color var(--duration-base), box-shadow var(--duration-base);
+  transition: border-color var(--duration-base), box-shadow var(--duration-base);
 }
 
 .way-mode:hover {
   border-color: var(--color-primary);
   box-shadow: var(--shadow-md);
   color: var(--color-text);
-  transform: translateY(-2px);
 }
 
 .way-mode__icon {
@@ -343,8 +342,7 @@
 .way-mode__text { display: grid; flex: 1; min-width: 0; }
 .way-mode__text strong { color: var(--color-heading); }
 .way-mode__text small { color: var(--color-text-muted); font-size: var(--text-sm); }
-.way-mode__go { color: var(--color-primary); transition: translate var(--duration-base) var(--ease-out); }
-.way-mode:hover .way-mode__go { translate: 4px 0; }
+.way-mode__go { color: var(--color-primary); }
 
 /* account: purple card */
 .way--account {

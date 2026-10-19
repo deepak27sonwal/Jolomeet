@@ -367,7 +367,6 @@ async function openConversation(id, { push = false, intro = null } = {}) {
     typingUntil: 0,
     lastTypingSent: 0,
     stickToBottom: true,
-    renderedKeys: new Set(),
   };
 
   renderConversation();
@@ -617,8 +616,6 @@ function renderMessages({ keepOffset = false } = {}) {
     ? `<button class="btn btn--ghost btn--sm" type="button" data-action="older"${a.loadingOlder ? ' disabled' : ''}>${a.loadingOlder ? 'Loading…' : 'Load older messages'}</button>`
     : '';
 
-  // after the first render, messages not shown before get the slide-in animation
-  const animateNew = a.renderedKeys.size > 0 && !keepOffset;
   const lastOwn = [...a.messages].reverse().find((m) => m.sender_id === state.me.id && m.kind !== 'system');
   let html = '';
   if (!a.hasMore) html += `<p class="msg msg--system">${esc(introText(a))}</p>`;
@@ -629,9 +626,7 @@ function renderMessages({ keepOffset = false } = {}) {
       html += `<div class="chat-day"><span>${esc(dayLabel(m.created_at))}</span></div>`;
       lastDay = day;
     }
-    const key = m.client_id || m.id;
-    html += messageHtml(m, m === lastOwn, animateNew && !a.renderedKeys.has(key));
-    a.renderedKeys.add(key);
+    html += messageHtml(m, m === lastOwn);
   }
   listEl.innerHTML = html;
   hydrateImages(listEl);
@@ -648,14 +643,13 @@ function introText(a) {
   return `This is the start of your conversation with ${a.partner.name}.`;
 }
 
-function messageHtml(m, isLastOwn, isNew = false) {
+function messageHtml(m, isLastOwn) {
   const out = m.sender_id === state.me.id;
   if (m.kind === 'system') return `<p class="msg msg--system">${esc(m.body)}</p>`;
   const classes = ['msg', out ? 'msg--out' : 'msg--in'];
   if (m.deleted_at) classes.push('msg--deleted');
   if (m.status === 'sending') classes.push('msg--sending');
   if (m.status === 'failed') classes.push('msg--failed');
-  if (isNew) classes.push('msg--new');
 
   let content;
   if (m.deleted_at) {

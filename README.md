@@ -32,7 +32,7 @@ python3 -m http.server 8000
 - `css/variables.css`: colours, type scale, spacing, radii, shadows (the design tokens)
 - `css/global.css`, `css/layout.css`, `css/components.css`: shared base, page chrome and components
 - `css/<page>.css`: page-specific styles
-- `css/motion.css`, `js/motion.js`, `js/page-transition.js`: pages slide in from the right (back slides the other way), scroll reveals and hover effects (off when the device asks for reduced motion)
+- `css/motion.css`, `js/motion.js`, `js/page-transition.js`: the only motion: pages slide left/right when switching tabs, and homepage sections slide in on scroll (both off when the device asks for reduced motion)
 - `js/config.js`: public Supabase URL and publishable key (safe for browsers; all data is protected by RLS)
 - `js/api.js`: every Supabase call goes through here
 - `js/interest-picker.js`: interest chips shown right before matching (random chat, audio, video); the choice is remembered on the device

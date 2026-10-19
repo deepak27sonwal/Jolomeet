@@ -99,12 +99,10 @@
 .call-orb--ended .call-orb__core { background: var(--color-accent-soft); color: var(--color-nav); box-shadow: none; }
 .call-orb--ended::before, .call-orb--ended::after { display: none; }
 
+/* the rings only move while searching: they mean "looking for someone" */
 @media (prefers-reduced-motion: no-preference) {
-  .call-orb::before { animation: call-ring 2.4s var(--ease-out) infinite; }
-  .call-orb::after { animation: call-ring 2.4s var(--ease-out) 1.2s infinite; }
-  .call-orb--searching::before, .call-orb--searching::after { animation-duration: 1.6s; }
-  .call-orb--searching::after { animation-delay: 0.8s; }
-  .call-stage { animation: rise-in 500ms var(--ease-out) both; }
+  .call-orb--searching::before { animation: call-ring 1.6s var(--ease-out) infinite; }
+  .call-orb--searching::after { animation: call-ring 1.6s var(--ease-out) 0.8s infinite; }
 }
 
 @keyframes call-ring {
@@ -276,7 +274,6 @@
   border-radius: var(--radius-lg);
   background: #2B2050;
   box-shadow: var(--shadow-lg);
-  transition: all var(--duration-slow) var(--ease-out);
 }
 
 .call-screen[data-screen="searching"] .call-self {

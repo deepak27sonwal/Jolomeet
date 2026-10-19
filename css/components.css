@@ -146,14 +146,12 @@
 }
 
 .card--interactive {
-  transition: transform var(--duration-base) var(--ease-out),
-              box-shadow var(--duration-base) var(--ease-out),
+  transition: box-shadow var(--duration-base) var(--ease-out),
               border-color var(--duration-base);
 }
 
 @media (hover: hover) {
   .card--interactive:hover {
-    transform: translateY(-4px);
     border-color: var(--color-secondary);
     box-shadow: var(--shadow-lg);
   }
@@ -208,7 +206,6 @@
   background: var(--gradient-primary);
   color: var(--color-on-primary);
   box-shadow: var(--shadow-button);
-  animation: chip-pop var(--duration-slow) var(--ease-out);
 }
 
 .chip[aria-pressed="true"] .chip__icon { color: var(--color-on-primary); }
@@ -249,12 +246,6 @@
 .chip--more {
   border-style: dashed;
   color: var(--color-primary);
-}
-
-@keyframes chip-pop {
-  0% { transform: scale(0.94); }
-  60% { transform: scale(1.04); }
-  100% { transform: scale(1); }
 }
 
 /* ---------- Status indicator ---------- */
@@ -341,17 +332,10 @@
   font-size: var(--text-sm);
   font-weight: var(--weight-medium);
   pointer-events: auto;
-  animation: toast-in var(--duration-slow) var(--ease-out);
 }
 
 .toast--error { border-left: 4px solid var(--color-primary); }
 .toast--success { border-left: 4px solid var(--color-secondary); }
-.toast.is-leaving { opacity: 0; transform: translateY(8px); transition: all var(--duration-base); }
-
-@keyframes toast-in {
-  from { opacity: 0; transform: translateY(12px); }
-  to { opacity: 1; transform: none; }
-}
 
 /* ---------- Forms ---------- */
 .form { display: grid; gap: var(--space-5); }
@@ -599,7 +583,7 @@ select.input {
   color: var(--color-text);
 }
 
-.modal[open] { display: flex; flex-direction: column; animation: modal-in var(--duration-slow) var(--ease-out); }
+.modal[open] { display: flex; flex-direction: column; }
 
 .modal::backdrop {
   background: rgba(30, 22, 54, 0.45);
@@ -633,11 +617,6 @@ select.input {
 }
 
 .modal--sm { width: min(420px, calc(100vw - 2 * var(--space-4))); }
-
-@keyframes modal-in {
-  from { opacity: 0; transform: translateY(12px) scale(0.98); }
-  to { opacity: 1; transform: none; }
-}
 
 @media (max-width: 640px) {
   .modal__header, .modal__body, .modal__footer { padding-inline: var(--space-4); }
