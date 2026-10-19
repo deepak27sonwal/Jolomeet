@@ -81,7 +81,7 @@ async function init() {
   }
   if (!session) {
     const page = window.location.pathname.split('/').pop() || `${MODE}.html`;
-    window.location.replace(`login.html?next=${encodeURIComponent(page)}`);
+    window.location.replace(`login.html?next=${encodeURIComponent(page)}#guest`); // random: no account needed
     return;
   }
   state.me = session.user;

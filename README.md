@@ -18,7 +18,7 @@ python3 -m http.server 8000
 
 ## Pages
 
-- `index.html`: homepage
+- `index.html`: homepage, including the two ways to use JoloMeet: **Random** (text, audio, video with strangers; no sign-up, guests welcome) and **With your account** (profile, connections, direct messages, saved history). Signed-out visitors opening a Random page land on the guest form; account features ask guests to create an account (also enforced in the database)
 - `login.html`: log in, forgot password, continue as guest (`login.html#guest` opens the guest form)
 - `register.html`: create an account (email confirmation); a signed-in guest upgrades their guest account here and keeps their chats
 - `reset-password.html`: set a new password from the emailed link (`?finish=1`: an upgraded guest chooses their first password)

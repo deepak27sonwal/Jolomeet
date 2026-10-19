@@ -160,6 +160,62 @@
       </div>
     </section>
 
+    <!-- Two ways to meet: random (no sign-up) and with an account -->
+    <section class="section" id="ways" aria-labelledby="ways-title">
+      <div class="container">
+        <header class="section-header">
+          <p class="eyebrow">Two ways to meet</p>
+          <h2 id="ways-title">Jump in randomly, or keep your people</h2>
+          <p>Start talking in seconds without signing up, or create a free account to stay in touch with the people you click with.</p>
+        </header>
+
+        <div class="ways">
+          <article class="way way--random" aria-labelledby="way-random-title">
+            <span class="way__tag"><svg class="icon icon--sm" aria-hidden="true"><use href="assets/icons/sprite.svg#shuffle"/></svg>Random · No sign-up</span>
+            <h3 id="way-random-title">Meet someone new, right now</h3>
+            <p class="way__lead">Get matched instantly with someone who shares your vibe. Skip to the next person any time.</p>
+            <ul class="way__modes" role="list">
+              <li><a class="way-mode" href="chat.html?mode=random">
+                <span class="way-mode__icon"><svg class="icon" aria-hidden="true"><use href="assets/icons/sprite.svg#chat"/></svg></span>
+                <span class="way-mode__text"><strong>Text Chat</strong><small>Type with a stranger</small></span>
+                <svg class="icon icon--sm way-mode__go" aria-hidden="true"><use href="assets/icons/sprite.svg#arrow-right"/></svg>
+              </a></li>
+              <li><a class="way-mode" href="audio.html">
+                <span class="way-mode__icon"><svg class="icon" aria-hidden="true"><use href="assets/icons/sprite.svg#mic"/></svg></span>
+                <span class="way-mode__text"><strong>Audio Call</strong><small>Voice only, no camera</small></span>
+                <svg class="icon icon--sm way-mode__go" aria-hidden="true"><use href="assets/icons/sprite.svg#arrow-right"/></svg>
+              </a></li>
+              <li><a class="way-mode" href="video.html">
+                <span class="way-mode__icon"><svg class="icon" aria-hidden="true"><use href="assets/icons/sprite.svg#video"/></svg></span>
+                <span class="way-mode__text"><strong>Video Chat</strong><small>Face to face</small></span>
+                <svg class="icon icon--sm way-mode__go" aria-hidden="true"><use href="assets/icons/sprite.svg#arrow-right"/></svg>
+              </a></li>
+            </ul>
+            <p class="way__note"><svg class="icon icon--sm" aria-hidden="true"><use href="assets/icons/sprite.svg#shield"/></svg>Guests welcome · 18+ only · Report or skip anyone</p>
+          </article>
+
+          <article class="way way--account" aria-labelledby="way-account-title">
+            <span class="way__tag"><svg class="icon icon--sm" aria-hidden="true"><use href="assets/icons/sprite.svg#user"/></svg>With your account · Free</span>
+            <h3 id="way-account-title">Keep the people you click with</h3>
+            <p class="way__lead">Everything in Random, plus a home for the friends you make.</p>
+            <ul class="way__perks" role="list">
+              <li><svg class="icon icon--sm" aria-hidden="true"><use href="assets/icons/sprite.svg#check"/></svg>Your own profile, photo and interests</li>
+              <li><svg class="icon icon--sm" aria-hidden="true"><use href="assets/icons/sprite.svg#check"/></svg>Connect with people you meet</li>
+              <li><svg class="icon icon--sm" aria-hidden="true"><use href="assets/icons/sprite.svg#check"/></svg>Message people directly, any time</li>
+              <li><svg class="icon icon--sm" aria-hidden="true"><use href="assets/icons/sprite.svg#check"/></svg>Chat history saved across your devices</li>
+              <li><svg class="icon icon--sm" aria-hidden="true"><use href="assets/icons/sprite.svg#check"/></svg>Control who can message or call you</li>
+            </ul>
+            <!-- swapped by js/home.js for guests and signed-in members -->
+            <div class="way__actions" id="account-actions">
+              <a class="btn btn--light" href="register.html">Create Free Account</a>
+              <a class="btn btn--outline-light" href="login.html">Log In</a>
+            </div>
+            <p class="way__note" id="account-note">Started as a guest? Your chats come with you when you sign up.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
     <!-- Features -->
     <section class="section" aria-labelledby="features-title">
       <div class="container">

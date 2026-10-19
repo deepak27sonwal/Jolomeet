@@ -4,6 +4,7 @@
 const TARGETS = [
   '.vibe-section .container > *',
   '.section-header',
+  '.way',
   '.feature-card',
   '.step',
   '.cta',

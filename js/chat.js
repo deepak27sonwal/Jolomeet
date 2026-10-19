@@ -57,7 +57,9 @@ async function init() {
   }
   if (!session) {
     const next = encodeURIComponent(`chat.html${window.location.search}`);
-    window.location.replace(`login.html?next=${next}`);
+    // random chat needs no account, so offer the guest form first; the chat list needs a log in
+    const random = new URLSearchParams(window.location.search).get('mode') === 'random';
+    window.location.replace(`login.html?next=${next}${random ? '#guest' : ''}`);
     return;
   }
   state.me = session.user;

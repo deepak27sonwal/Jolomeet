@@ -18,15 +18,32 @@ let selected = new Set(storage.get(STORAGE_KEYS.interests, []));
 
 initApp();
 loadInterests();
-hideGuestLinkIfSignedIn();
+adaptToVisitor();
 showOnlineCount();
 
-/** "Try it as a guest" is only for people who aren't signed in yet. */
-async function hideGuestLinkIfSignedIn() {
+/**
+ * Signed-out visitors see the guest link and the sign-up buttons; guests are
+ * offered the upgrade that keeps their chats; members get shortcuts instead.
+ */
+async function adaptToVisitor() {
+  let session = null;
   try {
-    if (await getSession()) document.getElementById('hero-guest').hidden = true;
+    session = await getSession();
   } catch {
-    /* keep the link */
+    return; // keep the signed-out version
+  }
+  if (!session) return;
+  document.getElementById('hero-guest').hidden = true;
+
+  const actions = document.getElementById('account-actions');
+  const note = document.getElementById('account-note');
+  if (session.user.is_anonymous) {
+    actions.innerHTML = '<a class="btn btn--light" href="register.html">Create Account &amp; Keep My Chats</a>';
+    note.textContent = "You're using JoloMeet as a guest. Sign up and your chats come with you.";
+  } else {
+    actions.innerHTML = '<a class="btn btn--light" href="chat.html">Open My Chats</a>'
+      + '<a class="btn btn--outline-light" href="profile.html">My Profile</a>';
+    note.textContent = "You're signed in, so all of this is already yours.";
   }
 }
 
