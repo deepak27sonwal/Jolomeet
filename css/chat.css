@@ -669,3 +669,50 @@
   .chat-page.chat-about .chat-sidebar { display: none; }
   .chat-page.chat-about .chat-main { display: flex; }
 }
+
+/* ---------- Random chat setup (interests, then Start Matching) ---------- */
+.chat-setup {
+  position: relative;
+  display: grid;
+  place-items: center;
+  height: 100%;
+  padding: var(--space-6) var(--space-4);
+  overflow-y: auto;
+}
+
+.chat-setup__card {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-4);
+  width: min(100%, 520px);
+  padding: var(--space-8) var(--space-6);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  background: var(--color-bg);
+  box-shadow: var(--shadow-lg);
+  text-align: center;
+}
+
+.chat-setup__card .icon-badge {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: var(--gradient-primary);
+  color: var(--color-on-primary);
+  box-shadow: var(--shadow-button);
+}
+
+.chat-setup__lead { color: var(--color-text-muted); }
+
+.chat-setup__back {
+  position: absolute;
+  top: var(--space-3);
+  left: var(--space-3);
+}
+
+.chat-matching { position: relative; }
+
+@media (max-width: 767px) {
+  .chat-setup { place-items: start center; padding: var(--space-12) var(--space-3) var(--space-6); }
+  .chat-setup__card { padding: var(--space-6) var(--space-4); }
+}

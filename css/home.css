@@ -172,54 +172,6 @@
 .doodle--3 { bottom: 6%; left: 10%; width: 18px; height: 18px; color: var(--color-secondary); }
 .doodle--4 { top: 2%; left: 40%; width: 18px; height: 18px; color: var(--color-accent); }
 
-/* ---------- Vibe picker ---------- */
-.vibe-section { position: relative; }
-
-.vibe {
-  padding: clamp(1rem, 0.75rem + 1.25vw, 1.5rem);
-  box-shadow: var(--shadow-md);
-}
-
-.vibe__header {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--space-3);
-  margin-bottom: var(--space-4);
-}
-
-.vibe__header h2 { font-size: var(--text-xl); }
-
-.vibe__spark {
-  width: 24px;
-  height: 24px;
-  color: var(--color-primary);
-}
-
-.vibe__lead {
-  margin-top: var(--space-1);
-  color: var(--color-text-muted);
-  font-size: var(--text-sm);
-}
-
-.vibe__footer {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-4);
-  margin-top: var(--space-5);
-  padding-top: var(--space-4);
-  border-top: 1px solid var(--color-border);
-}
-
-.vibe__count {
-  color: var(--color-text-muted);
-  font-size: var(--text-sm);
-  font-weight: var(--weight-semibold);
-}
-
-.vibe__count strong { color: var(--color-primary); }
-
 /* ---------- Features ---------- */
 .feature-grid {
   display: grid;
@@ -505,8 +457,6 @@
   .feature-grid { gap: var(--space-3); }
   .feature-card { padding: var(--space-5) var(--space-3); }
 
-  .vibe__footer { justify-content: center; text-align: center; }
-  .vibe__footer .btn { width: 100%; }
 
   .cta { text-align: center; justify-content: center; }
   .cta__actions { width: 100%; }

@@ -7,7 +7,7 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   auth: { persistSession: true, autoRefreshToken: true },
 });
 
-/** Interest catalogue for the "What's your vibe?" chips, featured first. */
+/** Interest catalogue for the "What's your vibe?" picker shown before matching, featured first. */
 export async function fetchInterests() {
   const { data, error } = await supabase
     .from('interests')

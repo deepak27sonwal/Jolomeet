@@ -1,10 +1,10 @@
 // Chat page: conversation list, open conversation, random text matching.
-import { initApp, toast, storage } from './app.js';
-import { STORAGE_KEYS } from './config.js';
+import { initApp, toast } from './app.js';
 import * as api from './api.js';
 import { icon, esc, avatarHtml, timeAgo, setLoading, friendlyError } from './ui.js';
 import { confirmAction, openReportDialog } from './dialogs.js';
 import { askAboutYou } from './quick-start.js';
+import { interestPickerHtml, mountInterestPicker, savedInterests } from './interest-picker.js';
 
 const ONLINE_WINDOW_MS = 2 * 60 * 1000;
 const PRESENCE_REFRESH_MS = 60_000;
@@ -65,7 +65,7 @@ async function init() {
     }
     document.body.classList.add('chat-about');
     main.innerHTML = '<div class="chat-about-you"></div>';
-    session = await askAboutYou(main.firstElementChild, { action: 'Start Random Chat', next: 'chat.html?mode=random' });
+    session = await askAboutYou(main.firstElementChild, { action: 'Continue', next: 'chat.html?mode=random' });
     document.body.classList.remove('chat-about');
   }
   state.me = session.user;
@@ -105,10 +105,13 @@ function routeFromUrl() {
   }
   if (id) toast("That conversation link isn't valid.", { type: 'error' });
   if (params.get('mode') === 'random') {
-    if (!state.matching) startMatching({ push: false });
+    if (!state.matching && !main.querySelector('.chat-setup')) renderMatchSetup({ push: false });
     return;
   }
-  if (state.matching) cancelMatching({ push: false });
+  if (state.matching) {
+    stopMatching();
+    api.leaveMatchQueue().catch(() => {});
+  }
   closeConversation({ push: false });
 }
 
@@ -145,10 +148,10 @@ function bindSidebar() {
       openConversation(item.dataset.conversation, { push: true });
       return;
     }
-    if (event.target.closest('[data-action="new-chat"]')) startMatching({ push: true });
+    if (event.target.closest('[data-action="new-chat"]')) renderMatchSetup({ push: true });
     if (event.target.closest('[data-action="retry-list"]')) refreshList();
   });
-  document.getElementById('new-chat').addEventListener('click', () => startMatching({ push: true }));
+  document.getElementById('new-chat').addEventListener('click', () => renderMatchSetup({ push: true }));
 }
 
 async function refreshList() {
@@ -931,8 +934,9 @@ function bindMain() {
       decline: () => respondToRequest(false, button),
       block: handleBlock,
       unblock: () => handleUnblock(button),
-      'start-match': () => startMatching({ push: true }),
-      'cancel-match': () => cancelMatching({ push: false }),
+      'start-match': () => renderMatchSetup({ push: true }),
+      'begin-match': () => startMatching({ push: false }),
+      'cancel-match': () => cancelMatching(),
       older: loadOlder,
       jump: scrollToBottom,
       emoji: () => toggleEmoji(),
@@ -965,8 +969,8 @@ function bindMain() {
 
 function goBackToList() {
   if (state.matching) {
-    cancelMatching({ push: false });
-    return;
+    stopMatching();
+    api.leaveMatchQueue().catch(() => {});
   }
   closeConversation({ push: false });
 }
@@ -1072,8 +1076,31 @@ function renderConversationState() {
    ========================================================================= */
 
 function matchInterests() {
-  const saved = storage.get(STORAGE_KEYS.interests, []);
-  return Array.isArray(saved) ? saved.filter((s) => typeof s === 'string').slice(0, 10) : [];
+  return savedInterests();
+}
+
+/** Before matching: choose interests (remembered for next time), then start. */
+function renderMatchSetup({ push = false } = {}) {
+  leaveActive();
+  state.openSeq++;
+  stopMatching();
+  setPanelOpen(false);
+  panel.innerHTML = '';
+  setUrl('?mode=random', push);
+  setMobileOpen(true);
+  renderList();
+  main.innerHTML = `
+    <div class="chat-setup">
+      <button class="icon-button chat-back chat-setup__back" type="button" data-action="back" aria-label="Back to chats">${icon('arrow-left')}</button>
+      <div class="chat-setup__card">
+        <span class="icon-badge">${icon('shuffle')}</span>
+        <h2>Random Chat</h2>
+        <p class="chat-setup__lead">Text with someone new. Skip to the next person any time.</p>
+        ${interestPickerHtml()}
+        <button class="btn btn--primary btn--lg btn--block" type="button" data-action="begin-match">${icon('shuffle')}Start Matching</button>
+      </div>
+    </div>`;
+  mountInterestPicker(main);
 }
 
 function startMatching({ push = false } = {}) {
@@ -1090,7 +1117,7 @@ function startMatching({ push = false } = {}) {
   state.matching = { startedAt: Date.now(), interests, busy: false, timers: [] };
   const chips = interests.length
     ? `<ul class="chip-list" role="list" aria-label="Matching on">${interests.map((s) => `<li class="chip chip--static">${esc(state.labels[s] || s)}</li>`).join('')}</ul>`
-    : '<p>Tip: pick interests on the homepage to meet people who like the same things.</p>';
+    : '<p>Matching with anyone.</p>';
   main.innerHTML = `<div class="chat-matching" aria-live="polite">
     <div class="match-pulse" aria-hidden="true"><span class="icon-badge">${icon('shuffle')}</span></div>
     <h2>Finding someone for you…</h2>
@@ -1098,6 +1125,8 @@ function startMatching({ push = false } = {}) {
     ${chips}
     <button class="btn btn--secondary" type="button" data-action="cancel-match">Cancel</button>
   </div>`;
+  main.querySelector('.chat-matching').insertAdjacentHTML('afterbegin',
+    `<button class="icon-button chat-back chat-setup__back" type="button" data-action="cancel-match" aria-label="Stop matching">${icon('arrow-left')}</button>`);
 
   const m = state.matching;
   m.timers.push(setInterval(() => {
@@ -1142,10 +1171,11 @@ function stopMatching() {
   state.matching = null;
 }
 
-function cancelMatching({ push = false } = {}) {
+/** Stops searching and goes back to the setup screen, where interests can be changed. */
+function cancelMatching() {
   stopMatching();
   api.leaveMatchQueue().catch(() => {});
-  closeConversation({ push });
+  renderMatchSetup({ push: false });
 }
 
 /* =========================================================================
