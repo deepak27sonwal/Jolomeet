@@ -7,6 +7,7 @@ import { CallPeer, watchAudioLevel } from './rtc.js';
 import { icon, esc, avatarHtml, friendlyError } from './ui.js';
 import { confirmAction, openReportDialog } from './dialogs.js';
 import { askAboutYou } from './quick-start.js';
+import { questionFor } from './icebreakers.js';
 import { interestPickerHtml, mountInterestPicker, savedInterests } from './interest-picker.js';
 
 const MODE = document.body.dataset.mode === 'video' ? 'video' : 'audio';
@@ -192,15 +193,16 @@ function renderConnecting() {
 
 function renderLive() {
   if (VIDEO) {
-    setScreen('live', `${hudHtml(state.call, true)}${videoControlsHtml()}`);
+    setScreen('live', `${hudHtml(state.call, true)}${revealCardHtml(state.call)}${icebreakerHtml(state.call)}${videoControlsHtml(true)}`);
     tickCallTimer();
     return;
   }
   setScreen('live', `
     ${partnerHtml(state.call)}
     <p class="call-timer" id="call-timer" aria-label="Call duration">0:00</p>
+    ${icebreakerHtml(state.call)}
     <div class="call-actions">
-      ${muteButtonHtml()}
+      ${muteButtonHtml()}${stayButtonHtml(state.call)}
       <button class="btn btn--secondary" type="button" data-action="next">${icon('skip', 'icon icon--sm')}Next</button>
       <button class="call-hangup" type="button" data-action="end" aria-label="End call">${icon('phone-off')}</button>
     </div>
@@ -220,7 +222,7 @@ function hudHtml(c, live) {
         ${avatarHtml(c.name, c.avatarUrl)}
         <div>
           <strong>${esc(c.name)}${age}</strong>
-          <span>${live ? '<span id="call-timer" aria-label="Call duration">0:00</span>' : 'Connecting…'}${c.remoteMuted ? ` · ${icon('mic-off', 'icon icon--sm')} Muted` : ''}</span>
+          <span>${live ? '<span id="call-timer" aria-label="Call duration">0:00</span>' : 'Connecting…'}${c.remoteMuted ? ` · ${icon('mic-off', 'icon icon--sm')} Muted` : ''}${c.mutual ? ` · ${icon('heart', 'icon icon--sm is-filled')} Mutual` : ''}</span>
         </div>
       </div>
       <div class="call-hud__safety">
@@ -231,10 +233,13 @@ function hudHtml(c, live) {
     ${c.shared.length ? `<div class="call-hud__shared"><span>You both like</span>${chipsHtml(c.shared, c.shared)}</div>` : ''}`;
 }
 
-function videoControlsHtml() {
+function videoControlsHtml(live = false) {
+  const c = state.call;
+  const extra = live && c ? `${stayButtonHtml(c)}${c.icebreakerClosed
+    ? `<button class="call-mute" type="button" data-action="icebreaker-open" aria-label="Show an icebreaker question" title="Icebreaker">${icon('dice')}</button>` : ''}` : '';
   return `
     <div class="call-controls">
-      ${muteButtonHtml()}${cameraButtonHtml()}${switchButtonHtml()}
+      ${muteButtonHtml()}${cameraButtonHtml()}${switchButtonHtml()}${extra}
       <button class="btn btn--secondary" type="button" data-action="next">${icon('skip', 'icon icon--sm')}Next</button>
       <button class="call-hangup" type="button" data-action="end" aria-label="End call">${icon('phone-off')}</button>
     </div>`;
@@ -262,8 +267,156 @@ function renderEnded(reason, { duration = 0, call = null } = {}) {
       <button class="btn btn--primary btn--lg" type="button" data-action="start">${icon('shuffle')}Find Someone New</button>
       <a class="btn btn--secondary btn--lg" href="index.html">Back Home</a>
     </div>
+    ${call && reason !== 'blocked' ? endedStayHtml(call) : ''}
     ${call && reason !== 'blocked' ? `<button class="btn btn--ghost btn--sm" type="button" data-action="report-ended">${icon('flag', 'icon icon--sm')}Report ${esc(call.name)}</button>` : ''}`);
   state.lastCall = call;
+}
+
+/* ---------- signature features: icebreakers, stay in touch, reveal together ---------- */
+
+/** Shared question card: both people see the same one; "New question" changes it for both. */
+function icebreakerHtml(c) {
+  if (!c?.startedAt || c.icebreakerClosed) return '';
+  return `
+    <div class="call-icebreaker" role="note" aria-label="Icebreaker question">
+      <p class="call-icebreaker__label">${icon('dice', 'icon icon--sm')}Icebreaker</p>
+      <p class="call-icebreaker__q" id="icebreaker-q">${esc(questionFor(c.sessionId, c.icebreaker))}</p>
+      <div class="call-icebreaker__actions">
+        <button class="btn btn--ghost btn--sm" type="button" data-action="icebreaker-next">${icon('refresh', 'icon icon--sm')}New question</button>
+        ${VIDEO ? '<button class="btn btn--ghost btn--sm" type="button" data-action="icebreaker-close">Hide</button>' : ''}
+      </div>
+    </div>`;
+}
+
+function stayButtonHtml(c) {
+  if (!c) return '';
+  const on = Boolean(c.liked || c.mutual);
+  const label = c.mutual ? 'It’s mutual: you’re staying in touch'
+    : c.liked ? 'You’d like to stay in touch (only you can see this)' : 'Stay in touch';
+  return `<button class="call-mute call-stay${on ? ' is-on' : ''}" type="button" data-action="stay" aria-pressed="${on}"
+    aria-label="${label}" title="${label}">${icon('heart', `icon${on ? ' is-filled' : ''}`)}</button>`;
+}
+
+/** End screen: keep in touch with the person you just talked to, or what happened if you both did. */
+function endedStayHtml(call) {
+  const name = esc(call.name);
+  if (call.mutual === 'mutual') {
+    return `<div class="call-mutual">${icon('heart', 'icon is-filled')}<p><strong>It’s mutual!</strong> You and ${name} are connected.</p>
+      <button class="btn btn--primary" type="button" data-action="open-direct">${icon('chat', 'icon icon--sm')}Open Chat</button></div>`;
+  }
+  if (call.mutual === 'mutual_needs_account') {
+    return state.me.is_anonymous
+      ? `<div class="call-mutual">${icon('heart', 'icon is-filled')}<p><strong>It’s mutual!</strong> Create a free account to stay in touch with ${name}.</p>
+          <a class="btn btn--primary" href="register.html">Create Free Account</a></div>`
+      : `<div class="call-mutual">${icon('heart', 'icon is-filled')}<p><strong>It’s mutual!</strong> You’ll be connected with ${name} as soon as they create an account.</p></div>`;
+  }
+  if (call.liked) {
+    return `<p class="call-note">${icon('heart', 'icon icon--sm is-filled')}You’d like to stay in touch. If ${name} taps the heart too, you’ll be connected.</p>`;
+  }
+  return `<button class="btn btn--secondary" type="button" data-action="stay-ended">${icon('heart', 'icon icon--sm')}Stay in touch with ${name}</button>`;
+}
+
+function bothRevealed(c) {
+  return !VIDEO || Boolean(c?.iRevealed && c?.theyRevealed);
+}
+
+/** Video: nobody's camera reaches the other person until both have tapped Reveal. */
+function revealCardHtml(c) {
+  if (!VIDEO || !c || bothRevealed(c)) return '';
+  const name = esc(c.name);
+  let text;
+  if (c.iRevealed) text = `Waiting for ${name} to tap Reveal…`;
+  else if (c.theyRevealed) text = `${name} is ready. Tap Reveal to turn on video for both of you.`;
+  else text = 'Say hi first 👋 Video turns on when you both tap Reveal. Voice is already on.';
+  return `
+    <div class="call-reveal" role="note">
+      <p>${text}</p>
+      ${c.iRevealed ? '' : `<button class="btn btn--primary" type="button" data-action="reveal">${icon('eye', 'icon icon--sm')}Reveal my video</button>`}
+    </div>`;
+}
+
+/** Sends your camera to the other person only once you have both revealed. */
+async function applyReveal(c) {
+  if (!VIDEO || !c?.peer) return;
+  const track = bothRevealed(c) ? state.media?.getVideoTracks()[0] || null : null;
+  await c.peer.replaceTrack('video', track).catch(() => {});
+  remoteVideo.classList.toggle('is-veiled', !bothRevealed(c));
+}
+
+function reveal() {
+  const c = state.call;
+  if (!c || c.iRevealed) return;
+  c.iRevealed = true;
+  c.channel?.send({ kind: 'reveal' });
+  applyReveal(c);
+  rerenderCall(c);
+  if (bothRevealed(c)) toast('Video is on for both of you.');
+}
+
+function nextIcebreaker() {
+  const c = state.call;
+  if (!c) return;
+  c.icebreaker += 1;
+  c.channel?.send({ kind: 'icebreaker', offset: c.icebreaker });
+  showIcebreaker(c);
+}
+
+function showIcebreaker(c) {
+  const q = document.getElementById('icebreaker-q');
+  if (q) q.textContent = questionFor(c.sessionId, c.icebreaker);
+  else rerenderCall(c);
+}
+
+async function stayInTouch(call) {
+  if (!call?.sessionId || call.mutual) return;
+  if (call.liked) {
+    toast('You’ve said you’d like to stay in touch. If they tap the heart too, you’ll both be connected.');
+    return;
+  }
+  let result;
+  try {
+    result = await api.stayInTouch(call.sessionId);
+  } catch (error) {
+    toast(friendlyError(error), { type: 'error' });
+    return;
+  }
+  call.liked = true;
+  if (result === 'waiting') {
+    toast('Nice! If they tap the heart too, you’ll both be connected. They won’t know unless they do.', { duration: 6000 });
+  } else {
+    call.mutual = result;
+    call.channel?.send({ kind: 'mutual', result });
+    toast(`It’s mutual! You and ${call.name} want to stay in touch.`, { type: 'success' });
+  }
+  if (state.call === call) rerenderCall(call);
+  else if (state.screen === 'ended' && state.lastCall === call) renderEnded(state.lastReason, { duration: state.lastDuration, call });
+}
+
+/** The other person says it's mutual: believe the database, not the message. */
+async function onMutual(call, result) {
+  if (!call.liked) return;
+  if (result === 'mutual') {
+    const profile = await api.getProfile(call.partnerId).catch(() => null);
+    if (profile?.connection_status !== 'connected') return;
+  } else if (result !== 'mutual_needs_account') {
+    return;
+  }
+  call.mutual = result;
+  toast(`It’s mutual! You and ${call.name} want to stay in touch.`, { type: 'success' });
+  if (state.call === call) rerenderCall(call);
+}
+
+async function openDirectChat(button) {
+  const call = state.lastCall;
+  if (!call) return;
+  button.disabled = true;
+  try {
+    const id = await api.startDirectConversation(call.partnerId);
+    window.location.assign(`chat.html?c=${encodeURIComponent(id)}`);
+  } catch (error) {
+    button.disabled = false;
+    toast(friendlyError(error), { type: 'error' });
+  }
 }
 
 function renderError(title, message, { retry = true, extra = '' } = {}) {
@@ -320,10 +473,13 @@ function formatDuration(seconds) {
 function updateRemoteOff() {
   if (!VIDEO) return;
   const c = state.call;
-  const show = Boolean(c) && (state.screen === 'connecting' || (state.screen === 'live' && c.remoteCameraOff));
+  const veiled = state.screen === 'live' && c && !bothRevealed(c);
+  const show = Boolean(c) && (state.screen === 'connecting' || (state.screen === 'live' && (veiled || c.remoteCameraOff)));
   remoteOff.hidden = !show;
   if (show) {
-    remoteOff.innerHTML = `${avatarHtml(c.name, c.avatarUrl, 'call-avatar')}<p>${state.screen === 'connecting' ? 'Connecting…' : `${esc(c.name)} turned their camera off`}</p>`;
+    // before the reveal the card on top explains it, so the backdrop stays plain
+    remoteOff.innerHTML = veiled ? ''
+      : `${avatarHtml(c.name, c.avatarUrl, 'call-avatar')}<p>${state.screen === 'connecting' ? 'Connecting…' : `${esc(c.name)} turned their camera off`}</p>`;
   }
   selfTile.classList.toggle('is-off', state.cameraOff);
 }
@@ -341,6 +497,13 @@ function onStageClick(event) {
     mute: toggleMute,
     camera: toggleCamera,
     'switch-camera': switchCamera,
+    reveal,
+    stay: () => stayInTouch(state.call),
+    'stay-ended': () => stayInTouch(state.lastCall),
+    'open-direct': () => openDirectChat(button),
+    'icebreaker-next': nextIcebreaker,
+    'icebreaker-close': () => { if (state.call) { state.call.icebreakerClosed = true; rerenderCall(state.call); } },
+    'icebreaker-open': () => { if (state.call) { state.call.icebreakerClosed = false; rerenderCall(state.call); } },
     next: () => endCall('me', { next: true }),
     end: () => endCall('me'),
     report: () => report(state.call),
@@ -454,7 +617,7 @@ async function switchCamera() {
     state.media.addTrack(track);
     if (switched) state.facing = facingOf(track, wanted);
     showSelfView(track);
-    await state.call?.peer?.replaceTrack('video', track).catch(() => {});
+    if (state.call && bothRevealed(state.call)) await state.call.peer?.replaceTrack('video', track).catch(() => {});
   }
   if (!switched) toast('Couldn’t switch camera on this device.', { type: 'error' });
 
@@ -514,7 +677,9 @@ function isTouchDevice() {
 
 /** Lets the other side show "Muted" / "camera off" instead of silence or a black frame. */
 function sendMediaState() {
-  state.call?.channel?.send({ kind: 'media', muted: state.muted, cameraOff: state.cameraOff });
+  state.call?.channel?.send({
+    kind: 'media', muted: state.muted, cameraOff: state.cameraOff, revealed: Boolean(state.call.iRevealed),
+  });
 }
 
 /* ---------- matchmaking ---------- */
@@ -586,6 +751,12 @@ async function connect(match) {
     gender: '',
     remoteMuted: false,
     remoteCameraOff: false,
+    icebreaker: 0,           // how many times "New question" was pressed (shared)
+    icebreakerClosed: false,
+    liked: false,            // you tapped "Stay in touch" (only you can see this)
+    mutual: null,            // 'mutual' | 'mutual_needs_account'
+    iRevealed: false,
+    theyRevealed: false,
     startedAt: 0,
     timers: [],
     peer: null,
@@ -624,6 +795,7 @@ async function connect(match) {
     },
     onState: (pcState) => onPeerState(call, pcState),
   });
+  if (VIDEO) await applyReveal(call); // camera stays with you until you both tap Reveal
 
   try {
     call.channel = await api.joinMatchChannel(call.sessionId, (message) => {
@@ -633,7 +805,24 @@ async function connect(match) {
       } else if (message?.kind === 'media') {
         call.remoteMuted = Boolean(message.muted);
         call.remoteCameraOff = Boolean(message.cameraOff);
+        if (message.revealed && !call.theyRevealed) {
+          call.theyRevealed = true;
+          applyReveal(call);
+        }
         rerenderCall(call);
+      } else if (message?.kind === 'reveal') {
+        call.theyRevealed = true;
+        applyReveal(call);
+        rerenderCall(call);
+        if (bothRevealed(call)) toast('Video is on for both of you.');
+      } else if (message?.kind === 'icebreaker') {
+        const offset = Number(message.offset);
+        if (Number.isInteger(offset) && offset > call.icebreaker && offset < 10_000) {
+          call.icebreaker = offset;
+          showIcebreaker(call);
+        }
+      } else if (message?.kind === 'mutual') {
+        onMutual(call, message.result);
       } else {
         call.peer.handle(message).catch(() => {});
       }
@@ -709,7 +898,15 @@ async function endCall(reason, { next = false } = {}) {
     return;
   }
   releaseMedia(); // don't keep the camera/mic (and the browser's "in use" light) on between calls
-  renderEnded(reason, { duration, call: { name: call.name, partnerId: call.partnerId, sessionId: call.sessionId, conversationId: call.conversationId } });
+  state.lastReason = reason;
+  state.lastDuration = duration;
+  renderEnded(reason, {
+    duration,
+    call: {
+      name: call.name, partnerId: call.partnerId, sessionId: call.sessionId, conversationId: call.conversationId,
+      liked: call.liked, mutual: call.mutual,
+    },
+  });
 }
 
 function teardown(call) {
@@ -720,7 +917,10 @@ function teardown(call) {
   // let the bye message go out before leaving the channel
   setTimeout(() => call.channel?.leave(), 300);
   if (remoteAudio) remoteAudio.srcObject = null;
-  if (remoteVideo) remoteVideo.srcObject = null;
+  if (remoteVideo) {
+    remoteVideo.srcObject = null;
+    remoteVideo.classList.remove('is-veiled');
+  }
 }
 
 function releaseMedia() {

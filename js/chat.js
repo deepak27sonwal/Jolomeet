@@ -4,6 +4,8 @@ import * as api from './api.js';
 import { icon, esc, avatarHtml, timeAgo, setLoading, friendlyError } from './ui.js';
 import { confirmAction, openReportDialog } from './dialogs.js';
 import { askAboutYou } from './quick-start.js';
+import { randomQuestion } from './icebreakers.js';
+import { canRecordVoice, startRecording, voicePlayerHtml, hydrateVoicePlayers, stopVoicePlayback, formatSeconds, MAX_VOICE_SECONDS } from './voice-note.js';
 import { interestPickerHtml, mountInterestPicker, savedInterests } from './interest-picker.js';
 
 const ONLINE_WINDOW_MS = 2 * 60 * 1000;
@@ -285,6 +287,7 @@ function previewText(c) {
   if (!c.last_message_kind) return c.session_live ? 'Chat started. Say hi!' : 'No messages yet';
   const mine = c.last_message_sender === state.me.id ? 'You: ' : '';
   if (c.last_message_kind === 'image') return `${mine}📷 Photo`;
+  if (c.last_message_kind === 'voice') return `${mine}🎤 Voice message`;
   if (c.last_message_body == null) return 'Message deleted';
   return mine + c.last_message_body.replace(/\s+/g, ' ');
 }
@@ -364,6 +367,9 @@ async function openConversation(id, { push = false, intro = null } = {}) {
     loadingOlder: false,
     intro,
     typingChannel: null,
+    liked: false,          // you tapped "Stay in touch" (only you can see this)
+    mutual: null,          // 'mutual' | 'mutual_needs_account' once both tapped
+    recorder: null,
     typingUntil: 0,
     lastTypingSent: 0,
     stickToBottom: true,
@@ -371,8 +377,9 @@ async function openConversation(id, { push = false, intro = null } = {}) {
 
   renderConversation();
   markActiveRead();
+  if (meta.session && theirs.user_id) loadStayInTouch(state.active);
   if (theirs.user_id) {
-    api.joinTypingChannel(id, onTyping)
+    api.joinConversationChannel(id, { onTyping, onSignal })
       .then((channel) => {
         if (state.active?.id === id) state.active.typingChannel = channel;
         else channel.leave();
@@ -386,6 +393,9 @@ function leaveActive() {
   const active = state.active;
   if (!active) return;
   active.typingChannel?.leave();
+  clearInterval(active.recTimer);
+  active.recorder?.cancel();
+  stopVoicePlayback();
   clearTimeout(active.typingTimer);
   state.active = null;
 }
@@ -481,6 +491,7 @@ function renderHead() {
   const actions = document.getElementById('chat-head-actions');
   if (!actions) return;
   let html = '';
+  if (a.kind === 'random' && a.session && a.partner.id && !a.blocked) html += stayButtonHtml(a);
   if (isLiveRandom(a) && !a.blocked) {
     html += `<button class="btn btn--secondary" type="button" data-action="next" title="Next person">${icon('skip', 'icon icon--sm')}<span class="btn-label">Next</span></button>`;
     html += `<button class="btn btn--danger" type="button" data-action="end" title="End chat">${icon('close', 'icon icon--sm')}<span class="btn-label">End</span></button>`;
@@ -528,21 +539,21 @@ function renderBanners() {
   const slot = document.getElementById('chat-banners');
   if (!slot) return;
   const name = esc(a.partner.name);
-  let html = '';
+  let html = a.mutual && !a.blocked ? mutualBannerHtml(a) : '';
   if (a.blocked) {
-    html = `<div class="chat-banner chat-banner--warn">${icon('ban')}<p>You blocked ${name}. You won’t receive messages from them.</p>
+    html += `<div class="chat-banner chat-banner--warn">${icon('ban')}<p>You blocked ${name}. You won’t receive messages from them.</p>
       <button class="btn btn--secondary" type="button" data-action="unblock">Unblock</button></div>`;
   } else if (a.myStatus === 'request') {
-    html = `<div class="chat-banner"><p><strong>${name}</strong> wants to chat with you.</p>
+    html += `<div class="chat-banner"><p><strong>${name}</strong> wants to chat with you.</p>
       <button class="btn btn--primary" type="button" data-action="accept">${icon('check', 'icon icon--sm')}Accept</button>
       <button class="btn btn--secondary" type="button" data-action="decline">Decline</button>
       <button class="btn btn--ghost" type="button" data-action="block">Block</button></div>`;
   } else if (a.kind === 'random' && !isLiveRandom(a)) {
     const who = a.session?.ended_by === state.me.id ? 'You ended this chat.' : `${name} left the chat.`;
-    html = `<div class="chat-banner"><p>${a.session ? who : 'This chat has ended.'}</p>
+    html += `<div class="chat-banner"><p>${a.session ? who : 'This chat has ended.'}</p>
       <button class="btn btn--primary" type="button" data-action="start-match">${icon('shuffle', 'icon icon--sm')}Find New Match</button></div>`;
   } else if (a.kind === 'direct' && a.partnerStatus === 'request') {
-    html = `<div class="chat-banner"><p>Message request sent. You can send up to 3 messages until ${name} accepts.</p></div>`;
+    html += `<div class="chat-banner"><p>Message request sent. You can send up to 3 messages until ${name} accepts.</p></div>`;
   }
   slot.innerHTML = html;
 }
@@ -552,6 +563,7 @@ function renderComposer() {
   const slot = document.getElementById('chat-composer-slot');
   if (!slot) return;
   if (!canSend(a)) {
+    if (a.recorder) cancelVoiceNote();
     let text = 'You can’t send messages in this chat.';
     if (a.blocked) text = 'Unblock to send messages.';
     else if (a.myStatus === 'request') text = 'Accept the request to reply.';
@@ -564,9 +576,11 @@ function renderComposer() {
     <form class="chat-composer" id="composer" autocomplete="off">
       <button class="icon-button" type="button" data-action="emoji" aria-label="Add emoji" aria-expanded="false" aria-controls="emoji-pop">${icon('smile')}</button>
       <button class="icon-button" type="button" data-action="attach" aria-label="Send a photo">${icon('image')}</button>
+      <button class="icon-button" type="button" data-action="icebreaker" aria-label="Add an icebreaker question" title="Icebreaker">${icon('dice')}</button>
       <label class="sr-only" for="chat-input">Message ${esc(a.partner.name)}</label>
-      <textarea class="chat-input" id="chat-input" rows="1" maxlength="${MAX_LENGTH}" placeholder="Type a message…" enterkeyhint="send"></textarea>
-      <button class="chat-send" type="submit" aria-label="Send message" disabled>${icon('send')}</button>
+      <textarea class="chat-input" id="chat-input" rows="1" maxlength="${MAX_LENGTH}" placeholder="Message…" enterkeyhint="send"></textarea>
+      <button class="chat-send" type="submit" aria-label="Send message" disabled hidden>${icon('send')}</button>
+      ${canRecordVoice() ? `<button class="chat-send chat-mic" type="button" data-action="record" aria-label="Record a voice message" title="Voice message">${icon('mic')}</button>` : ''}
       <div class="emoji-pop" id="emoji-pop" role="group" aria-label="Emoji" hidden>
         ${EMOJI.map((e) => `<button type="button" data-emoji="${e}" aria-label="${e}">${e}</button>`).join('')}
       </div>
@@ -588,6 +602,7 @@ function renderComposer() {
     updateSendButton();
     sendTypingSignal();
   });
+  updateSendButton();
 }
 
 function autosize(input) {
@@ -595,10 +610,16 @@ function autosize(input) {
   input.style.height = `${Math.min(input.scrollHeight + 3, 140)}px`;
 }
 
+/** Empty input: the mic button (voice note). Something typed: the send button. */
 function updateSendButton() {
   const input = document.getElementById('chat-input');
-  const send = document.querySelector('.chat-send');
-  if (input && send) send.disabled = !input.value.trim();
+  const send = document.querySelector('.chat-send[type="submit"]');
+  const mic = document.querySelector('.chat-mic');
+  if (!input || !send) return;
+  const hasText = Boolean(input.value.trim());
+  send.disabled = !hasText;
+  send.hidden = Boolean(mic) && !hasText;
+  if (mic) mic.hidden = hasText;
 }
 
 /* ---------- messages ---------- */
@@ -630,6 +651,7 @@ function renderMessages({ keepOffset = false } = {}) {
   }
   listEl.innerHTML = html;
   hydrateImages(listEl);
+  hydrateVoicePlayers(listEl, attachmentUrl);
 
   if (keepOffset) scroller.scrollTop = prevTop + (scroller.scrollHeight - prevHeight);
   else if (a.stickToBottom) scrollToBottom();
@@ -650,10 +672,15 @@ function messageHtml(m, isLastOwn) {
   if (m.deleted_at) classes.push('msg--deleted');
   if (m.status === 'sending') classes.push('msg--sending');
   if (m.status === 'failed') classes.push('msg--failed');
+  if (m.kind === 'text' && String(m.body).startsWith('🎲 ')) classes.push('msg--icebreaker');
 
   let content;
   if (m.deleted_at) {
     content = '<div class="msg__bubble">Message deleted</div>';
+  } else if (m.kind === 'voice') {
+    content = `<div class="msg__bubble msg__bubble--voice">${voicePlayerHtml({
+      path: m.localUrl ? '' : m.attachment_path, src: m.localUrl || '', seconds: m.body,
+    })}</div>`;
   } else if (m.kind === 'image') {
     const src = m.localUrl ? ` src="${esc(m.localUrl)}"` : '';
     const path = m.attachment_path && !m.localUrl ? ` data-path="${esc(m.attachment_path)}"` : '';
@@ -682,6 +709,14 @@ function dayLabel(iso) {
   if (date.toDateString() === today.toDateString()) return 'Today';
   if (date.toDateString() === yesterday.toDateString()) return 'Yesterday';
   return date.toLocaleDateString([], { weekday: 'short', day: 'numeric', month: 'short', year: date.getFullYear() === today.getFullYear() ? undefined : 'numeric' });
+}
+
+/** Signed link for a photo or voice note, cached for the page. */
+function attachmentUrl(path) {
+  if (!imageUrls.has(path)) {
+    imageUrls.set(path, api.chatAttachmentUrl(path).catch((error) => { imageUrls.delete(path); throw error; }));
+  }
+  return imageUrls.get(path);
 }
 
 /** Chat photos are private, so each one is shown through a short-lived signed link. */
@@ -838,8 +873,8 @@ async function deliver(draft) {
   renderMessages();
 
   try {
-    if (message.kind === 'image' && !message.attachment_path) {
-      message.attachment_path = await api.uploadChatImage(a.id, state.me.id, message.file);
+    if ((message.kind === 'image' || message.kind === 'voice') && !message.attachment_path) {
+      message.attachment_path = await api.uploadChatAttachment(a.id, state.me.id, message.file, message.mime);
     }
     const saved = await api.sendMessage({
       conversationId: a.id,
@@ -878,6 +913,191 @@ function sendErrorText(error) {
 function retryMessage(clientId) {
   const m = state.active?.messages.find((x) => x.client_id === clientId && x.status === 'failed');
   if (m) deliver(m);
+}
+
+/* ---------- voice notes ---------- */
+
+async function startVoiceNote() {
+  const a = state.active;
+  const form = document.getElementById('composer');
+  if (!a || a.recorder || !form) return;
+  let recorder;
+  try {
+    recorder = await startRecording({
+      onLimit: () => {
+        toast(`Voice messages can be up to ${MAX_VOICE_SECONDS / 60} minutes, so this one was sent.`);
+        sendVoiceNote();
+      },
+    });
+  } catch (error) {
+    toast(error?.name === 'NotAllowedError' || error?.name === 'SecurityError'
+      ? 'Allow microphone access for this site to send voice messages.'
+      : 'Couldn’t start your microphone.', { type: 'error' });
+    return;
+  }
+  if (state.active !== a) {
+    recorder.cancel();
+    return;
+  }
+  a.recorder = recorder;
+  form.hidden = true;
+  form.insertAdjacentHTML('afterend', `
+    <div class="chat-composer chat-recording" id="chat-recording" role="group" aria-label="Recording a voice message">
+      <button class="icon-button" type="button" data-action="record-cancel" aria-label="Delete recording" title="Delete">${icon('trash')}</button>
+      <span class="chat-recording__dot" aria-hidden="true"></span>
+      <span class="chat-recording__time" id="rec-time">0:00</span>
+      <span class="chat-recording__hint">Recording… tap send when you’re done</span>
+      <button class="chat-send" type="button" data-action="record-send" aria-label="Send voice message">${icon('send')}</button>
+    </div>`);
+  a.recTimer = setInterval(() => {
+    const el = document.getElementById('rec-time');
+    if (el) el.textContent = formatSeconds(recorder.elapsed());
+  }, 250);
+}
+
+function endRecordingUi(a) {
+  clearInterval(a.recTimer);
+  a.recorder = null;
+  document.getElementById('chat-recording')?.remove();
+  const form = document.getElementById('composer');
+  if (form) form.hidden = false;
+}
+
+function cancelVoiceNote() {
+  const a = state.active;
+  if (!a?.recorder) return;
+  const recorder = a.recorder;
+  endRecordingUi(a);
+  recorder.cancel();
+}
+
+async function sendVoiceNote() {
+  const a = state.active;
+  if (!a?.recorder) return;
+  const recorder = a.recorder;
+  endRecordingUi(a);
+  const note = await recorder.stop();
+  if (!note) {
+    toast('That was too short to send.');
+    return;
+  }
+  if (state.active !== a) return;
+  deliver({
+    client_id: crypto.randomUUID(),
+    kind: 'voice',
+    body: String(note.seconds),
+    file: note.blob,
+    mime: note.type,
+    localUrl: URL.createObjectURL(note.blob),
+  });
+}
+
+/* ---------- icebreakers ---------- */
+
+/** Puts a conversation-starter question in the box; it can be edited before sending. */
+function addIcebreaker() {
+  const input = document.getElementById('chat-input');
+  if (!input) return;
+  input.value = `🎲 ${randomQuestion()}`;
+  autosize(input);
+  updateSendButton();
+  input.focus();
+}
+
+/* ---------- stay in touch ---------- */
+
+function stayButtonHtml(a) {
+  const on = Boolean(a.liked || a.mutual);
+  const label = a.mutual ? 'You’re staying in touch'
+    : a.liked ? 'You’d like to stay in touch (only you can see this)' : 'Stay in touch';
+  return `<button class="icon-button chat-stay${on ? ' is-on' : ''}" type="button" data-action="stay" aria-pressed="${on}"
+    aria-label="${label}" title="${label}">${icon('heart', `icon${on ? ' is-filled' : ''}`)}</button>`;
+}
+
+function mutualBannerHtml(a) {
+  const name = esc(a.partner.name);
+  const start = `<div class="chat-banner chat-banner--mutual">${icon('heart', 'icon is-filled')}<p><strong>It’s mutual!</strong>`;
+  if (a.mutual === 'mutual') {
+    return `${start} You and ${name} are now connected.</p>
+      <button class="btn btn--primary" type="button" data-action="open-direct">${icon('chat', 'icon icon--sm')}Open Chat</button></div>`;
+  }
+  if (state.me.is_anonymous) {
+    return `${start} Create a free account to stay in touch with ${name}.</p>
+      <a class="btn btn--primary" href="register.html">Create Free Account</a></div>`;
+  }
+  return `${start} ${name} is chatting without an account, so you’ll be connected as soon as they sign up.</p></div>`;
+}
+
+/** Restores your own heart (and a connection that came from it) when a chat is reopened. */
+async function loadStayInTouch(a) {
+  try {
+    a.liked = await api.didStayInTouch(a.session.id);
+  } catch {
+    return;
+  }
+  if (a.liked && a.partner.profile?.connection_status === 'connected') a.mutual = 'mutual';
+  if (state.active === a && a.liked) {
+    renderHead();
+    renderBanners();
+  }
+}
+
+async function stayInTouch() {
+  const a = state.active;
+  if (!a?.session || a.mutual) return;
+  if (a.liked) {
+    toast('You’ve said you’d like to stay in touch. If they tap the heart too, you’ll both be connected.');
+    return;
+  }
+  let result;
+  try {
+    result = await api.stayInTouch(a.session.id);
+  } catch (error) {
+    toast(friendlyError(error), { type: 'error' });
+    return;
+  }
+  if (state.active !== a) return;
+  a.liked = true;
+  if (result === 'waiting') {
+    toast('Nice! If they tap the heart too, you’ll both be connected. They won’t know unless they do.', { duration: 6000 });
+  } else {
+    a.mutual = result;
+    a.typingChannel?.sendSignal({ kind: 'mutual', result, user_id: state.me.id });
+    refreshListSoon();
+  }
+  renderHead();
+  renderBanners();
+}
+
+/** Signals from the other person in this conversation. */
+async function onSignal(payload) {
+  const a = state.active;
+  if (!a || payload?.user_id !== a.partner.id || payload.kind !== 'mutual' || !a.liked) return;
+  if (payload.result === 'mutual') {
+    // trust the database, not the message: are you actually connected now?
+    const profile = await api.getProfile(a.partner.id).catch(() => null);
+    if (state.active !== a || profile?.connection_status !== 'connected') return;
+    a.partner.profile = profile;
+  } else if (payload.result !== 'mutual_needs_account') {
+    return;
+  }
+  a.mutual = payload.result;
+  renderHead();
+  renderBanners();
+  toast(`It’s mutual! You and ${a.partner.name} want to stay in touch.`, { type: 'success' });
+}
+
+async function openDirectChat(button) {
+  const a = state.active;
+  setLoading(button, true);
+  try {
+    const id = await api.startDirectConversation(a.partner.id);
+    await refreshList();
+    openConversation(id, { push: true });
+  } catch (error) {
+    setLoading(button, false);
+    toast(friendlyError(error), { type: 'error' });
+  }
 }
 
 /* ---------- typing ---------- */
@@ -935,6 +1155,12 @@ function bindMain() {
       jump: scrollToBottom,
       emoji: () => toggleEmoji(),
       attach: () => fileInput.click(),
+      icebreaker: addIcebreaker,
+      record: startVoiceNote,
+      'record-cancel': cancelVoiceNote,
+      'record-send': sendVoiceNote,
+      stay: stayInTouch,
+      'open-direct': () => openDirectChat(button),
     };
     actions[button.dataset.action]?.();
   });

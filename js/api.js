@@ -369,21 +369,35 @@ export async function updateParticipation(conversationId, userId, fields) {
   if (error) throw error;
 }
 
-export async function uploadChatImage(conversationId, userId, file) {
-  const ext = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/gif': 'gif' }[file.type];
+const ATTACHMENT_EXTENSIONS = {
+  'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/gif': 'gif',
+  'audio/webm': 'webm', 'audio/ogg': 'ogg', 'audio/mp4': 'm4a', 'audio/mpeg': 'mp3',
+};
+
+/** Photo or voice note for a chat. Stored at <conversation>/<sender>/<file> in the private bucket. */
+export async function uploadChatAttachment(conversationId, userId, blob, type = blob.type) {
+  const baseType = String(type).split(';')[0]; // "audio/webm;codecs=opus" → "audio/webm"
+  const ext = ATTACHMENT_EXTENSIONS[baseType];
+  if (!ext) throw new Error(`Unsupported file type: ${baseType}`);
   const path = `${conversationId}/${userId}/${Date.now()}.${ext}`;
   const { error } = await supabase.storage.from('chat-attachments')
-    .upload(path, file, { contentType: file.type, upsert: false });
+    .upload(path, blob, { contentType: baseType, upsert: false });
   if (error) throw error;
   return path;
 }
 
-/** Chat images live in a private bucket, so they are shown through short-lived signed links. */
-export async function chatImageUrl(path) {
+export function uploadChatImage(conversationId, userId, file) {
+  return uploadChatAttachment(conversationId, userId, file);
+}
+
+/** Chat photos and voice notes live in a private bucket, so they are loaded through short-lived signed links. */
+export async function chatAttachmentUrl(path) {
   const { data, error } = await supabase.storage.from('chat-attachments').createSignedUrl(path, 3600);
   if (error) throw error;
   return data.signedUrl;
 }
+
+export const chatImageUrl = chatAttachmentUrl;
 
 /* ---------- Matchmaking ---------- */
 
@@ -394,6 +408,23 @@ export async function requestMatch(mode, interests = [], languages = []) {
   });
   if (error) throw error;
   return data?.[0] ?? null;
+}
+
+/**
+ * "Stay in touch" with the person from a random match. Private until both tap it.
+ * Returns 'waiting' | 'mutual' (now connected) | 'mutual_needs_account'.
+ */
+export async function stayInTouch(sessionId) {
+  const { data, error } = await supabase.rpc('stay_in_touch', { p_session_id: sessionId });
+  if (error) throw error;
+  return data;
+}
+
+/** Whether you already tapped "Stay in touch" for this session (you can only ever see your own taps). */
+export async function didStayInTouch(sessionId) {
+  const { data, error } = await supabase.from('match_likes').select('session_id').eq('session_id', sessionId).maybeSingle();
+  if (error) throw error;
+  return Boolean(data);
 }
 
 export async function leaveMatchQueue() {
@@ -431,19 +462,31 @@ export async function subscribeToInbox(userId, handlers) {
 }
 
 /** Private broadcast channel for typing indicators in one conversation. */
-export async function joinTypingChannel(conversationId, onTyping) {
+/**
+ * Private broadcast channel for one conversation: typing indicators, plus small
+ * signals between the two people (e.g. "it's mutual").
+ */
+export async function joinConversationChannel(conversationId, { onTyping, onSignal } = {}) {
   await authorizeRealtime();
   const channel = supabase.channel(`conversation:${conversationId}`, {
     config: { private: true, broadcast: { self: false } },
   });
-  channel.on('broadcast', { event: 'typing' }, ({ payload }) => onTyping(payload)).subscribe();
+  channel
+    .on('broadcast', { event: 'typing' }, ({ payload }) => onTyping?.(payload))
+    .on('broadcast', { event: 'signal' }, ({ payload }) => onSignal?.(payload))
+    .subscribe();
   return {
     // only over the open socket; before it joins, send() would fall back to an HTTP request
     sendTyping: (userId) => {
       if (channel.state === 'joined') channel.send({ type: 'broadcast', event: 'typing', payload: { user_id: userId } });
     },
+    sendSignal: (payload) => channel.send({ type: 'broadcast', event: 'signal', payload }),
     leave: () => supabase.removeChannel(channel),
   };
+}
+
+export function joinTypingChannel(conversationId, onTyping) {
+  return joinConversationChannel(conversationId, { onTyping });
 }
 
 /**

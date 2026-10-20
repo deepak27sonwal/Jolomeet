@@ -100,3 +100,10 @@ Errors use custom SQLSTATE codes that the UI can map to messages:
 - `js/config.js` lists public STUN servers. Calls between people on very strict networks (some offices, schools, mobile carriers) need a TURN relay as well; add one from a TURN provider to `ICE_SERVERS` when needed.
 - Reports from a call use the `audio_call` (or `video_call`) context with the session id.
 
+## Signature features (`20261020000000_signature_features.sql`)
+
+- **Voice notes**: `message_kind` gains `voice`. A voice message has `attachment_path` (in the sender's folder of `chat-attachments`, checked by `before_message_insert`) and `body` = its length in seconds. The bucket also accepts `audio/webm`, `audio/ogg`, `audio/mp4`, `audio/mpeg`; the browser stops recording at 2 minutes.
+- **Stay in touch**: `match_likes(session_id, user_id)` records a private "I'd like to stay in touch" for a random match. People can only read their own rows and can't write directly. `stay_in_touch(session_id)` returns `waiting`, `mutual` (both tapped: an accepted connection is created) or `mutual_needs_account` (one of them has no account yet; they're connected automatically when that person signs up, via `handle_user_updated`). Blocked pairs are refused.
+- Connections the database creates itself (no signed-in user, e.g. during sign-up) skip the connection-request rate limit; requests people send are still limited.
+- **Icebreakers** and **Reveal together** need no database changes: they use the private `match:<session id>` channel (`{kind:'icebreaker', offset}`, `{kind:'reveal'}`, `{kind:'mutual'}`). Before both people reveal, the caller's camera is detached from the call (`replaceTrack(null)`), so no video is sent at all.
+

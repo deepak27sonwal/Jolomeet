@@ -708,3 +708,61 @@
   .chat-setup { place-items: start center; padding: var(--space-12) var(--space-3) var(--space-6); }
   .chat-setup__card { padding: var(--space-6) var(--space-4); }
 }
+
+/* ---------- Voice notes, icebreakers, stay in touch ---------- */
+.msg__bubble--voice { padding: var(--space-2) var(--space-3); }
+.msg--in .voice__play { background: var(--color-accent-soft); color: var(--color-nav); }
+.msg--in .voice__track, .msg--in .voice__progress { color: var(--color-accent); }
+
+/* a question sent with the dice button */
+.msg--icebreaker .msg__bubble {
+  border: 1.5px dashed var(--color-secondary);
+  background: var(--color-bg-blush);
+  color: var(--color-heading);
+  font-weight: var(--weight-semibold);
+}
+
+.msg--out.msg--icebreaker .msg__bubble { border-color: #FFB3D4; }
+
+.chat-mic { background: var(--gradient-video); }
+
+.chat-recording { align-items: center; }
+
+.chat-recording__dot {
+  width: 10px;
+  height: 10px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--color-primary-pressed);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  /* shows the microphone is on */
+  .chat-recording__dot { animation: rec-blink 1.2s ease-in-out infinite; }
+}
+
+@keyframes rec-blink { 50% { opacity: 0.25; } }
+
+.chat-recording__time { color: var(--color-heading); font-weight: var(--weight-bold); font-variant-numeric: tabular-nums; }
+.chat-recording__hint { flex: 1; min-width: 0; overflow: hidden; color: var(--color-text-muted); font-size: var(--text-sm); text-overflow: ellipsis; white-space: nowrap; }
+
+.chat-stay.is-on, .chat-stay[aria-pressed="true"] { color: var(--color-primary); }
+
+.chat-banner--mutual {
+  border: 1.5px solid #FFC2DB;
+  background: var(--color-selected);
+  color: var(--color-heading);
+}
+
+.chat-banner--mutual > .icon { color: var(--color-primary); }
+
+@media (max-width: 767px) {
+  .chat-recording__hint { display: none; }
+}
+
+@media (max-width: 480px) {
+  /* four composer buttons + the box on a phone */
+  .chat-composer { gap: var(--space-1); }
+  .chat-composer .icon-button { width: 36px; height: 36px; }
+  .chat-composer .icon-button .icon { width: 20px; height: 20px; }
+}
