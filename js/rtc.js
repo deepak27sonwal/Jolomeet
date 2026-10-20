@@ -81,9 +81,10 @@ export class CallPeer {
     return Boolean(this.pc.remoteDescription || this.pc.localDescription);
   }
 
-  /** Swaps the outgoing camera or microphone track (e.g. front ↔ back camera) without renegotiating. */
+  /** Swaps the outgoing camera or microphone track (e.g. front ↔ back camera) without renegotiating; null detaches it. */
   async replaceTrack(kind, track) {
-    const sender = this.pc.getSenders().find((s) => s.track?.kind === kind);
+    // found through the transceiver, so it still works while the sender is detached (track null)
+    const sender = this.pc.getTransceivers().find((t) => t.receiver.track?.kind === kind)?.sender;
     if (sender) await sender.replaceTrack(track);
   }
 

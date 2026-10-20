@@ -64,6 +64,7 @@ const state = {
   cameraOff: false,
   facing: 'user',
   canSwitchCamera: false,
+  switchingCamera: false,
   search: null,      // { startedAt, timers, busy }
   call: null,        // the current match (see connect)
   lastCall: null,
@@ -302,7 +303,7 @@ function cameraButtonHtml() {
 
 function switchButtonHtml() {
   if (!VIDEO || !state.canSwitchCamera) return '';
-  return `<button class="call-mute" type="button" data-action="switch-camera" aria-label="Switch camera" title="Switch camera">${icon('refresh')}</button>`;
+  return `<button class="call-mute" type="button" data-action="switch-camera" aria-label="Switch between front and back camera" title="Switch camera">${icon('camera-flip')}</button>`;
 }
 
 function refreshControls() {
@@ -379,12 +380,7 @@ async function ensureMedia() {
     localVideo.srcObject = state.media;
     localVideo.classList.toggle('is-mirrored', state.facing === 'user');
     localVideo.play().catch(() => {});
-    try {
-      const devices = await navigator.mediaDevices.enumerateDevices();
-      state.canSwitchCamera = devices.filter((d) => d.kind === 'videoinput').length > 1;
-    } catch {
-      state.canSwitchCamera = false;
-    }
+    state.canSwitchCamera = (await listCameras()).length > 1 || isTouchDevice();
   }
   return true;
 }
@@ -422,25 +418,98 @@ function toggleCamera() {
   toast(state.cameraOff ? 'Camera off' : 'Camera on');
 }
 
-/** Front ↔ back camera on phones; the call keeps going on the new track. */
+/**
+ * Front ↔ back camera. The call keeps going on the new track (no reconnect).
+ * Many phones can only have one camera open at a time, so the current one is
+ * released first; if the other camera can't be opened, the previous one is
+ * put back.
+ */
 async function switchCamera() {
-  if (!state.media) return;
-  const facing = state.facing === 'user' ? 'environment' : 'user';
-  let fresh;
-  try {
-    fresh = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { exact: facing } }, audio: false });
-  } catch {
-    toast('Couldn’t switch camera.', { type: 'error' });
-    return;
+  if (!state.media || state.switchingCamera) return;
+  state.switchingCamera = true;
+  const button = stage.querySelector('[data-action="switch-camera"]');
+  if (button) button.disabled = true;
+
+  const wanted = state.facing === 'user' ? 'environment' : 'user';
+  const [old] = state.media.getVideoTracks();
+  const oldDeviceId = old?.getSettings?.().deviceId;
+  // detach the call from the old camera before stopping it, so the call picks up the new one cleanly
+  await state.call?.peer?.replaceTrack('video', null).catch(() => {});
+  if (old) {
+    old.stop();
+    state.media.removeTrack(old);
   }
-  const [track] = fresh.getVideoTracks();
-  track.enabled = !state.cameraOff;
-  state.media.getVideoTracks().forEach((old) => { old.stop(); state.media.removeTrack(old); });
-  state.media.addTrack(track);
-  state.facing = facing;
-  localVideo.srcObject = state.media;
-  localVideo.classList.toggle('is-mirrored', facing === 'user');
-  await state.call?.peer?.replaceTrack('video', track).catch(() => {});
+
+  let track = await openCamera({ facingMode: { exact: wanted } });
+  if (!track) track = await openCamera(await nextCameraConstraint(oldDeviceId));
+  const switched = Boolean(track);
+  if (!track) {
+    // put the previous camera back (asked loosely, so any camera is better than none)
+    track = await openCamera(oldDeviceId ? { deviceId: oldDeviceId } : { facingMode: state.facing })
+      || await openCamera({});
+  }
+
+  if (track) {
+    track.enabled = !state.cameraOff;
+    state.media.addTrack(track);
+    if (switched) state.facing = facingOf(track, wanted);
+    showSelfView(track);
+    await state.call?.peer?.replaceTrack('video', track).catch(() => {});
+  }
+  if (!switched) toast('Couldn’t switch camera on this device.', { type: 'error' });
+
+  state.switchingCamera = false;
+  const after = stage.querySelector('[data-action="switch-camera"]');
+  if (after) after.disabled = false;
+}
+
+async function openCamera(video) {
+  if (!video) return null; // no alternative to try
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: { ...video, width: { ideal: 1280 }, height: { ideal: 720 } },
+      audio: false,
+    });
+    return stream.getVideoTracks()[0] || null;
+  } catch {
+    return null;
+  }
+}
+
+async function listCameras() {
+  try {
+    return (await navigator.mediaDevices.enumerateDevices()).filter((d) => d.kind === 'videoinput');
+  } catch {
+    return [];
+  }
+}
+
+/** For devices that don't label cameras as front/back: the next camera in the list. */
+async function nextCameraConstraint(currentId) {
+  const cameras = await listCameras();
+  if (cameras.length < 2) return null;
+  const index = cameras.findIndex((c) => c.deviceId === currentId);
+  return { deviceId: { exact: cameras[(index + 1) % cameras.length].deviceId } };
+}
+
+function facingOf(track, fallback) {
+  const reported = track.getSettings?.().facingMode;
+  if (reported === 'user' || reported === 'environment') return reported;
+  if (/back|rear|environment/i.test(track.label)) return 'environment';
+  if (/front|user|face/i.test(track.label)) return 'user';
+  return fallback;
+}
+
+/** Your own picture: mirrored for the front camera, like a mirror; the back camera shows the world as it is. */
+function showSelfView(track) {
+  localVideo.srcObject = new MediaStream([track]);
+  localVideo.classList.toggle('is-mirrored', state.facing === 'user');
+  localVideo.play().catch(() => {});
+}
+
+function isTouchDevice() {
+  return window.matchMedia('(pointer: coarse)').matches
+    && Boolean(navigator.mediaDevices.getSupportedConstraints?.().facingMode);
 }
 
 /** Lets the other side show "Muted" / "camera off" instead of silence or a black frame. */
