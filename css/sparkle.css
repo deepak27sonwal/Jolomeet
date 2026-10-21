@@ -104,7 +104,7 @@
    A large conic-gradient square spins behind a white face inset by --neon-width,
    so only a thin ring of it shows. Rotating with transform works in every
    browser. Set --neon-start to begin at a different point and --neon-radius to
-   the card's corner radius. */
+   the card's corner radius, --neon-face for a face other than white. */
 .neon {
   --neon-width: 3px;
   position: relative;
@@ -137,7 +137,7 @@
   inset: var(--neon-width);
   z-index: -1;
   border-radius: calc(var(--neon-radius, var(--radius-xl)) - var(--neon-width));
-  background: #FFFFFF;
+  background: var(--neon-face, #FFFFFF);
   pointer-events: none;
 }
 

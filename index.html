@@ -19,8 +19,8 @@
   <link rel="stylesheet" href="css/global.css">
   <link rel="stylesheet" href="css/layout.css">
   <link rel="stylesheet" href="css/components.css">
-  <link rel="stylesheet" href="css/sparkle.css?v=4">
-  <link rel="stylesheet" href="css/home.css?v=6">
+  <link rel="stylesheet" href="css/sparkle.css?v=5">
+  <link rel="stylesheet" href="css/home.css?v=7">
   <link rel="stylesheet" href="css/motion.css">
   <script src="js/page-transition.js"></script>
   <script type="module" src="js/home.js"></script>
@@ -289,26 +289,34 @@
     <!-- CTA -->
     <section class="section" aria-labelledby="cta-title">
       <div class="container">
-        <div class="cta glitter">
-          <div class="sparkles" aria-hidden="true">
-            <i style="--x:4%;--y:18%;--s:14px;--d:.3s"></i><i style="--x:36%;--y:80%;--s:10px;--d:1.4s"></i>
-            <i style="--x:50%;--y:12%;--s:12px;--d:.9s"></i><i style="--x:97%;--y:22%;--s:16px;--d:0s"></i>
-            <i style="--x:80%;--y:86%;--s:9px;--d:2s"></i>
+        <div class="cta neon">
+          <div class="sparkles sparkles--on-light" aria-hidden="true">
+            <i style="--x:3%;--y:14%;--s:14px;--d:.3s"></i><i style="--x:46%;--y:86%;--s:10px;--d:1.4s"></i>
+            <i style="--x:55%;--y:10%;--s:12px;--d:.9s"></i><i style="--x:96%;--y:16%;--s:16px;--d:0s"></i>
+            <i style="--x:92%;--y:88%;--s:10px;--d:2s"></i>
           </div>
           <div class="cta__body">
-            <div>
-              <h2 id="cta-title">Ready to meet someone new?</h2>
-              <p>Your next favourite conversation is one tap away.</p>
-            </div>
+            <p class="cta__badge"><span class="hero__badge-star" aria-hidden="true"></span>Free · No sign-up needed</p>
+            <h2 id="cta-title">Ready to meet <span class="shine-text">someone new?</span></h2>
+            <p class="cta__lead">Your next favourite conversation is one tap away.</p>
             <div class="cta__actions">
-              <a class="btn btn--secondary btn--lg btn--gloss" href="chat.html?mode=random" data-start="text">Start Text Chat</a>
-              <a class="btn btn--outline-light btn--lg" href="video.html" data-start="video">Start Video Chat</a>
-              <a class="btn btn--outline-light btn--lg" href="audio.html" data-start="audio">Start Audio Call</a>
+              <a class="btn btn--primary btn--hero btn--gloss" href="chat.html?mode=random" data-start="text">
+                <span class="btn__icon"><svg class="icon icon--filled" aria-hidden="true"><use href="assets/icons/sprite.svg#chat"/></svg></span>
+                <span class="btn__text">Text Chat</span>
+              </a>
+              <a class="btn btn--video btn--hero btn--gloss" href="video.html" data-start="video">
+                <span class="btn__icon"><svg class="icon icon--filled" aria-hidden="true"><use href="assets/icons/sprite.svg#video"/></svg></span>
+                <span class="btn__text">Video Chat</span>
+              </a>
+              <a class="btn btn--audio btn--hero btn--gloss" href="audio.html" data-start="audio">
+                <span class="btn__icon"><svg class="icon" aria-hidden="true"><use href="assets/icons/sprite.svg#mic"/></svg></span>
+                <span class="btn__text">Audio Call</span>
+              </a>
             </div>
           </div>
           <picture class="cta__art">
             <source srcset="assets/images/couple-chatting.webp" type="image/webp">
-            <img src="assets/images/couple-chatting-sm.png" alt="" width="581" height="700" loading="lazy">
+            <img src="assets/images/couple-chatting-sm.png" alt="" width="581" height="700" loading="lazy" decoding="async">
           </picture>
         </div>
       </div>

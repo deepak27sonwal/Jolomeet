@@ -9,6 +9,7 @@ const nextPage = api.safeNextPage(new URLSearchParams(window.location.search).ge
 
 initApp();
 initPasswordToggles();
+fitCardToScreen();
 
 if (page === 'login') initLogin();
 if (page === 'register') initRegister();
@@ -412,4 +413,47 @@ function friendlyError(error) {
   if (code.startsWith('over_') || error?.status === 429) return 'Too many attempts. Please wait a minute and try again.';
   if (code === 'JM403') return message; // e.g. the 18+ age check from the database
   return 'Something went wrong. Please try again.';
+}
+
+// Shrink the card (via --auth-fit, see css/auth.css) just enough for the whole
+// form to fit on screen. Never below the minimum, so text stays readable; on
+// very small screens the page scrolls instead. Phones are already at 80%.
+function fitCardToScreen() {
+  const minFit = () => (window.innerWidth <= 640 ? 0.85 : 0.75);
+  const card = document.querySelector('.auth__card');
+  const auth = document.querySelector('.auth');
+  if (!card || !auth || !('ResizeObserver' in window)) return;
+  let fit = 1;
+  let natural = 0;
+  let lastWidth = window.innerWidth;
+  let lastHeight = window.innerHeight;
+
+  const apply = () => {
+    const header = document.querySelector('.site-header')?.getBoundingClientRect().height || 0;
+    const pad = parseFloat(getComputedStyle(auth).paddingTop) + parseFloat(getComputedStyle(auth).paddingBottom);
+    const room = window.innerHeight - header - pad;
+    // two passes: the card re-wraps a little after each change
+    for (let i = 0; i < 2; i++) {
+      natural = card.getBoundingClientRect().height / fit;
+      const next = Math.min(1, Math.max(minFit(), room / natural));
+      if (Math.abs(next - fit) < 0.005) break;
+      fit = next;
+      card.style.setProperty('--auth-fit', fit.toFixed(3));
+    }
+    natural = card.getBoundingClientRect().height / fit;
+  };
+
+  apply();
+  // refit when the content changes height (switching panels, error messages)
+  new ResizeObserver(() => {
+    const now = card.getBoundingClientRect().height / fit;
+    if (Math.abs(now - natural) > 4) apply();
+  }).observe(card);
+  // ...and on rotation or real resizes (not the mobile address bar showing/hiding)
+  window.addEventListener('resize', () => {
+    if (window.innerWidth === lastWidth && Math.abs(window.innerHeight - lastHeight) < 120) return;
+    lastWidth = window.innerWidth;
+    lastHeight = window.innerHeight;
+    apply();
+  });
 }
