@@ -53,6 +53,10 @@ button, input, select, textarea {
   color: inherit;
 }
 
+/* Firefox won't shrink a text field below its default width inside a flex row,
+   which pushes buttons next to it (e.g. Send) off the screen */
+input, select, textarea { min-width: 0; }
+
 button { cursor: pointer; }
 
 ul[role="list"], ol[role="list"] {

@@ -605,6 +605,7 @@ select.input {
 
 .modal::backdrop {
   background: rgba(30, 22, 54, 0.45);
+  -webkit-backdrop-filter: blur(3px);
   backdrop-filter: blur(3px);
 }
 
