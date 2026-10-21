@@ -98,7 +98,7 @@
             <label class="field__label" for="register-name">Display name</label>
             <div class="input-wrap">
               <svg class="icon" aria-hidden="true"><use href="assets/icons/sprite.svg#user"/></svg>
-              <input class="input" id="register-name" name="register-name" type="text" autocomplete="nickname" required aria-describedby="register-name-error register-name-hint" maxlength="40">
+              <input class="input" id="register-name" name="register-name" type="text" placeholder="e.g. Aisha" autocomplete="nickname" required aria-describedby="register-name-error register-name-hint" maxlength="40">
             </div>
             <p class="field__hint" id="register-name-hint">This is how others will see you. You can change it later.</p>
             <p class="field__error" id="register-name-error"></p>
@@ -107,7 +107,7 @@
             <label class="field__label" for="register-email">Email</label>
             <div class="input-wrap">
               <svg class="icon" aria-hidden="true"><use href="assets/icons/sprite.svg#mail"/></svg>
-              <input class="input" id="register-email" name="register-email" type="email" autocomplete="email" required aria-describedby="register-email-error">
+              <input class="input" id="register-email" name="register-email" type="email" placeholder="you@example.com" autocomplete="email" required aria-describedby="register-email-error">
             </div>
             <p class="field__error" id="register-email-error"></p>
           </div>
@@ -115,7 +115,7 @@
             <label class="field__label" for="register-password">Password</label>
             <div class="input-wrap">
               <svg class="icon" aria-hidden="true"><use href="assets/icons/sprite.svg#lock"/></svg>
-              <input class="input input--with-toggle" id="register-password" name="register-password" type="password" autocomplete="new-password" required aria-describedby="register-password-hint register-password-error">
+              <input class="input input--with-toggle" id="register-password" name="register-password" type="password" placeholder="Create a password" autocomplete="new-password" required aria-describedby="register-password-hint register-password-error">
               <button class="input-toggle" type="button" data-toggle-password="register-password" aria-label="Show password" aria-pressed="false"><svg class="icon" aria-hidden="true"><use href="assets/icons/sprite.svg#eye"/></svg></button>
             </div>
             <div class="strength" id="password-strength" data-score="0" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
