@@ -699,3 +699,18 @@
 @media (max-width: 380px) {
   .features .feature-grid { grid-template-columns: minmax(0, 1fr); }
 }
+
+/* ---------- Phones: homepage cards at 80% size ----------
+   zoom shrinks each card group as a whole (padding, pictures, icons and text),
+   and the 80% width keeps the same layout inside, just smaller and centred.
+   Browsers without zoom (Firefox before 126) show the cards full size. */
+@media (max-width: 640px) {
+  .ways,
+  .features,
+  .steps[role="list"] { /* [role] outranks the list reset in global.css */
+    zoom: 0.8;
+    width: 80%;
+    max-width: none;
+    margin-inline: auto;
+  }
+}
