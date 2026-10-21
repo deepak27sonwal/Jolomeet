@@ -357,6 +357,19 @@ export async function sendMessage({ conversationId, clientId, body, kind = 'text
   return data;
 }
 
+/** Deletes your own message for everyone: the database clears its text and
+ *  attachment (it then shows as "Message deleted"), and the photo or voice file is removed. */
+export async function deleteMessage(id, attachmentPath = null) {
+  const { data, error } = await supabase.from('messages')
+    .update({ deleted_at: new Date().toISOString() })
+    .eq('id', id)
+    .select(MESSAGE_FIELDS)
+    .single();
+  if (error) throw error;
+  if (attachmentPath) await supabase.storage.from('chat-attachments').remove([attachmentPath]); // best effort
+  return data;
+}
+
 export async function markConversationRead(conversationId, userId) {
   const { error } = await supabase.from('conversation_participants')
     .update({ last_read_at: new Date().toISOString() })

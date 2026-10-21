@@ -716,6 +716,7 @@ function messageHtml(m, isLastOwn) {
   const tools = canAct ? `<div class="msg__tools">
       <button class="msg__tool" type="button" data-reply="${esc(m.id)}" aria-label="Reply" title="Reply">${icon('reply')}</button>
       ${m.kind === 'text' ? `<button class="msg__tool" type="button" data-copy="${esc(m.id)}" aria-label="Copy text" title="Copy">${icon('copy')}</button>` : ''}
+      ${out ? `<button class="msg__tool msg__tool--danger" type="button" data-delete="${esc(m.id)}" aria-label="Delete message" title="Delete">${icon('trash')}</button>` : ''}
     </div>` : '';
   const quote = m.reply_to_id && !m.deleted_at ? quoteHtml(m.reply_to_id) : '';
   return `<div class="${classes.join(' ')}" data-id="${esc(m.id || '')}">${quote}<div class="msg__row">${content}${tools}</div><div class="msg__meta">${meta}</div></div>`;
@@ -1190,6 +1191,11 @@ function bindMain() {
       copyMessage(copy.dataset.copy);
       return;
     }
+    const remove = event.target.closest('[data-delete]');
+    if (remove) {
+      deleteOwnMessage(remove.dataset.delete);
+      return;
+    }
     const jump = event.target.closest('[data-jump]');
     if (jump) {
       jumpToMessage(jump.dataset.jump);
@@ -1321,6 +1327,34 @@ function renderReplyBar() {
       <span>${esc(messageSnippet(reply))}</span>
     </div>
     <button class="icon-button" type="button" data-action="cancel-reply" aria-label="Cancel reply">${icon('close')}</button>` : '';
+}
+
+async function deleteOwnMessage(id) {
+  const a = state.active;
+  const message = a?.messages.find((m) => m.id === id && m.sender_id === state.me.id);
+  if (!message || message.deleted_at) return;
+  closeMessageTools();
+  const ok = await confirmAction({
+    title: 'Delete this message?',
+    message: 'It will be removed for everyone in this chat. This can’t be undone.',
+    confirmLabel: 'Delete',
+  });
+  if (!ok || state.active !== a) return;
+  if (a.replyTo?.id === id) cancelReply();
+  const before = { ...message };
+  // show it as deleted straight away; put it back if the server says no
+  upsertMessage({ ...message, deleted_at: new Date().toISOString(), body: null, attachment_path: null });
+  renderMessages({ keepOffset: true });
+  try {
+    const saved = await api.deleteMessage(id, before.attachment_path);
+    if (state.active === a) upsertMessage({ ...saved, status: 'sent' });
+    refreshListSoon();
+  } catch (error) {
+    if (state.active !== a) return;
+    upsertMessage(before);
+    toast(friendlyError(error), { type: 'error' });
+  }
+  if (state.active === a) renderMessages({ keepOffset: true });
 }
 
 async function copyMessage(id) {
