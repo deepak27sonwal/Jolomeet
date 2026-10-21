@@ -1,0 +1,93 @@
+/* Dark theme: js/theme-init.js sets <html data-theme="dark"> from the device
+   setting or the header toggle. Most colours come from the tokens below; the
+   rest of this file covers surfaces that use fixed light colours. Loaded last. */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --color-bg: #1A1230;
+  --color-bg-soft: #22183D;
+  --color-bg-blush: #1E1536;
+  --color-primary: #F0368A;
+  --color-secondary: #FF5FA4;
+  --color-accent: #A970FF;
+  --color-accent-pressed: #C29BFF;
+  --color-accent-soft: #2E2152;
+  --color-nav: #CDB8FF;
+  --color-border: #3B2B5E;
+  --color-selected: #3D1F48;
+  --color-text: #F2ECFB;
+  --color-heading: #EADFFF;
+  --color-text-muted: #B4A7CC;
+
+  --gradient-page: radial-gradient(70% 60% at 90% 0%, rgba(233, 30, 120, 0.22) 0%, transparent 60%),
+                   radial-gradient(50% 50% at 0% 30%, rgba(139, 44, 245, 0.18) 0%, transparent 70%),
+                   #120B22;
+  --gradient-card: linear-gradient(160deg, #2A1A3E 0%, #24183F 100%);
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3), 0 2px 8px rgba(0, 0, 0, 0.25);
+  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.35);
+  --shadow-lg: 0 20px 48px rgba(0, 0, 0, 0.45);
+  --focus-ring: 0 0 0 3px #120B22, 0 0 0 5px var(--color-primary);
+
+  --neon-rim: #3A2556;
+}
+
+[data-theme="dark"] body { background: #120B22; }
+
+/* header, bottom bar, menus */
+[data-theme="dark"] .site-header { background: rgba(22, 14, 40, 0.88); border-bottom-color: var(--color-border); }
+[data-theme="dark"] .bottom-nav { background: rgba(22, 14, 40, 0.94); }
+[data-theme="dark"] .menu-toggle { border-color: var(--color-border); }
+[data-theme="dark"] .mobile-menu { background: #160E28; }
+
+/* form fields */
+[data-theme="dark"] .input::placeholder { color: #7F7399; }
+[data-theme="dark"] .btn--audio { border-color: #4A3577; }
+
+/* homepage */
+[data-theme="dark"] .hero__badge { background: rgba(26, 18, 48, 0.8); border-color: var(--color-border); }
+[data-theme="dark"] .section-header .eyebrow,
+[data-theme="dark"] .cta__badge { border-color: var(--color-border); }
+[data-theme="dark"] .section--blush {
+  background:
+    radial-gradient(60% 80% at 0% 0%, rgba(233, 30, 120, 0.12) 0%, transparent 70%),
+    radial-gradient(60% 80% at 100% 100%, rgba(139, 44, 245, 0.14) 0%, transparent 70%),
+    #150D27;
+}
+[data-theme="dark"] .way--account { --neon-face: linear-gradient(160deg, #24173F 0%, #1A1230 50%, #261630 100%); }
+[data-theme="dark"] .cta { --neon-face: linear-gradient(120deg, #251634 0%, #1A1230 45%, #20163C 100%); }
+[data-theme="dark"] .step__number { border-color: var(--color-bg); }
+[data-theme="dark"] .way-mode { background: var(--color-bg-soft); }
+[data-theme="dark"] .hero__photo,
+[data-theme="dark"] .features__art,
+[data-theme="dark"] .way__art,
+[data-theme="dark"] .step__art { filter: brightness(0.92); }
+
+/* chat */
+[data-theme="dark"] .chat-head { background: rgba(22, 14, 40, 0.9); }
+[data-theme="dark"] .chat-day span { background: rgba(26, 18, 48, 0.85); }
+[data-theme="dark"] [data-chat-bg="default"] { background-color: #120B22; }
+[data-theme="dark"] .bg-swatch__name { background: rgba(26, 18, 48, 0.86); }
+/* the light chat backgrounds keep dark helper text so it stays readable */
+[data-theme="dark"] .chat-messages:not([data-chat-bg="default"]):not([data-chat-bg="night"]) :is(.msg__meta, .msg--system) { color: #5E5574; }
+
+/* calls */
+[data-theme="dark"] .call-stage { background: rgba(26, 18, 48, 0.92); }
+[data-theme="dark"] .call-chat { background: rgba(22, 14, 40, 0.97); }
+[data-theme="dark"] .call-mute:hover { background: #3A2A66; }
+
+/* profile cover */
+[data-theme="dark"] .profile-cover,
+[data-theme="dark"] .image-picker__cover { background: linear-gradient(120deg, #5A2242 0%, #3E2A66 55%, #4E2140 100%); }
+
+/* theme toggle (added to the header by js/navigation.js) */
+.theme-toggle { margin-left: var(--space-2); }
+/* the icon shows what you switch to: moon in light mode, sun in dark mode */
+.theme-toggle .icon-sun { display: none; }
+[data-theme="dark"] .theme-toggle .icon-moon { display: none; }
+[data-theme="dark"] .theme-toggle .icon-sun { display: block; }
+
+@media (max-width: 960px) {
+  .theme-toggle { margin-left: auto; }
+  .theme-toggle + .menu-toggle { margin-left: var(--space-2); }
+}

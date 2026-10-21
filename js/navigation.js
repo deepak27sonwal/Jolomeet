@@ -4,6 +4,7 @@ export function initNavigation() {
   markActiveLinks(document.body.dataset.page);
   initHeaderShadow();
   initMobileMenu();
+  initThemeToggle();
 }
 
 function markActiveLinks(page) {
@@ -53,5 +54,46 @@ function initMobileMenu() {
 
   desktop.addEventListener('change', (event) => {
     if (event.matches) setOpen(false);
+  });
+}
+
+// Sun/moon button in the header. js/theme-init.js has already applied the saved
+// or device theme; this switches it and remembers the choice on this device.
+const THEME_KEY = 'jolomeet:theme';
+const THEME_COLORS = { light: '#E91E78', dark: '#160E28' };
+
+function initThemeToggle() {
+  const header = document.querySelector('.site-header__inner');
+  if (!header) return;
+  const root = document.documentElement;
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'icon-button theme-toggle';
+  button.innerHTML = '<svg class="icon icon-sun" aria-hidden="true"><use href="assets/icons/sprite.svg#sun"/></svg>'
+    + '<svg class="icon icon-moon" aria-hidden="true"><use href="assets/icons/sprite.svg#moon"/></svg>';
+  header.insertBefore(button, header.querySelector('.menu-toggle'));
+
+  const meta = document.querySelector('meta[name="theme-color"]');
+  const show = (theme) => {
+    root.dataset.theme = theme;
+    const dark = theme === 'dark';
+    button.setAttribute('aria-pressed', String(dark));
+    button.setAttribute('aria-label', dark ? 'Switch to light mode' : 'Switch to dark mode');
+    button.title = dark ? 'Light mode' : 'Dark mode';
+    meta?.setAttribute('content', THEME_COLORS[theme]);
+  };
+  show(root.dataset.theme === 'dark' ? 'dark' : 'light');
+
+  button.addEventListener('click', () => {
+    const next = root.dataset.theme === 'dark' ? 'light' : 'dark';
+    show(next);
+    try { localStorage.setItem(THEME_KEY, next); } catch { /* storage blocked: applies to this page only */ }
+  });
+
+  // follow the device while the person hasn't picked a theme themselves
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (event) => {
+    let saved = null;
+    try { saved = localStorage.getItem(THEME_KEY); } catch { /* storage blocked */ }
+    if (!saved) show(event.matches ? 'dark' : 'light');
   });
 }

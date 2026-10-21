@@ -112,7 +112,7 @@
   overflow: hidden;
   border: 0;
   border-radius: var(--neon-radius, var(--radius-xl));
-  background: #FFD0E6;
+  background: var(--neon-rim, #FFD0E6);
   box-shadow: 0 8px 26px rgba(233, 30, 120, 0.14), 0 0 22px rgba(192, 38, 211, 0.16);
 }
 
@@ -137,7 +137,7 @@
   inset: var(--neon-width);
   z-index: -1;
   border-radius: calc(var(--neon-radius, var(--radius-xl)) - var(--neon-width));
-  background: var(--neon-face, #FFFFFF);
+  background: var(--neon-face, var(--color-bg));
   pointer-events: none;
 }
 

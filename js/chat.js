@@ -15,6 +15,14 @@ const TYPING_SEND_MS = 2500;
 const TYPING_SHOW_MS = 4000;
 const PAGE_SIZE = 40;
 const MAX_LENGTH = 2000;
+// Chat backgrounds (styles in css/chat.css, [data-chat-bg]). The choice is kept
+// on this device only, for all chats or one chat; nobody else sees it.
+const CHAT_BACKGROUNDS = [
+  ['default', 'JoloMeet'], ['blush', 'Blush'], ['lavender', 'Lavender'],
+  ['sunset', 'Sunset'], ['mint', 'Mint'], ['hearts', 'Hearts'],
+  ['stars', 'Sparkle'], ['night', 'Night'], ['love', 'Love story'],
+];
+const CHAT_BG_KEY = 'jolomeet:chat-bg';
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const EMOJI = ['😀', '😂', '😊', '😍', '🥰', '😘', '😎', '😉',
   '🤔', '😅', '😭', '😴', '🤗', '🙌', '👍', '👏',
@@ -464,6 +472,7 @@ function renderConversation() {
 
   const scroller = document.getElementById('chat-messages');
   scroller.addEventListener('scroll', onMessagesScroll, { passive: true });
+  applyChatBackground();
 
   state.panelOpen = wideScreen.matches;
   renderHead();
@@ -499,6 +508,8 @@ function renderHead() {
     html += `<button class="icon-button" type="button" data-action="favorite" aria-pressed="${a.isFavorite}"
       aria-label="${a.isFavorite ? 'Remove from favorites' : 'Add to favorites'}" title="Favorite">${icon('star', `icon${a.isFavorite ? ' is-filled' : ''}`)}</button>`;
   }
+  html += `<button class="icon-button" type="button" data-action="background" aria-expanded="false" aria-controls="bg-picker"
+    aria-label="Chat background" title="Chat background">${icon('palette')}</button>`;
   html += `<button class="icon-button" type="button" data-action="panel" aria-controls="chat-panel"
     aria-expanded="${state.panelOpen}" aria-label="Profile details" title="Profile details">${icon('info')}</button>`;
   actions.innerHTML = html;
@@ -1136,6 +1147,11 @@ function bindMain() {
       insertEmoji(emoji.dataset.emoji);
       return;
     }
+    const swatch = event.target.closest('[data-bg]');
+    if (swatch) {
+      chooseChatBackground(swatch.dataset.bg);
+      return;
+    }
     const button = event.target.closest('[data-action]');
     if (!button) return;
     const actions = {
@@ -1154,6 +1170,8 @@ function bindMain() {
       older: loadOlder,
       jump: scrollToBottom,
       emoji: () => toggleEmoji(),
+      background: () => toggleBackgroundPicker(),
+      'close-bg': () => toggleBackgroundPicker(false),
       attach: () => fileInput.click(),
       icebreaker: addIcebreaker,
       record: startVoiceNote,
@@ -1174,13 +1192,22 @@ function bindMain() {
   document.addEventListener('click', (event) => {
     const pop = document.getElementById('emoji-pop');
     if (pop && !pop.hidden && !event.target.closest('#emoji-pop, [data-action="emoji"]')) toggleEmoji(false);
+    const picker = document.getElementById('bg-picker');
+    if (picker && !picker.hidden && !event.target.closest('#bg-picker, [data-action="background"]')) toggleBackgroundPicker(false);
+  });
+  main.addEventListener('change', (event) => {
+    if (event.target.id === 'bg-all') chooseChatBackground(currentChatBackground(), event.target.checked);
   });
   document.addEventListener('keydown', (event) => {
     if (event.key !== 'Escape') return;
     const pop = document.getElementById('emoji-pop');
+    const picker = document.getElementById('bg-picker');
     if (pop && !pop.hidden) {
       toggleEmoji(false);
       document.querySelector('[data-action="emoji"]')?.focus();
+    } else if (picker && !picker.hidden) {
+      toggleBackgroundPicker(false);
+      document.querySelector('[data-action="background"]')?.focus();
     } else if (state.panelOpen && !wideScreen.matches && !document.querySelector('dialog[open]')) {
       setPanelOpen(false);
     }
@@ -1203,6 +1230,78 @@ function toggleEmoji(force) {
   pop.hidden = !open;
   button?.setAttribute('aria-expanded', String(open));
   if (open) pop.querySelector('button')?.focus();
+}
+
+/* ---------- Chat background ---------- */
+
+function readChatBackgrounds() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(CHAT_BG_KEY) || '{}');
+    return { all: saved.all || 'default', chats: saved.chats || {} };
+  } catch {
+    return { all: 'default', chats: {} };
+  }
+}
+
+function currentChatBackground() {
+  const saved = readChatBackgrounds();
+  const id = saved.chats[state.active?.id] || saved.all;
+  return CHAT_BACKGROUNDS.some(([key]) => key === id) ? id : 'default';
+}
+
+function applyChatBackground() {
+  const scroller = document.getElementById('chat-messages');
+  if (scroller) scroller.dataset.chatBg = currentChatBackground();
+}
+
+function chooseChatBackground(id, forAll) {
+  if (!state.active || !CHAT_BACKGROUNDS.some(([key]) => key === id)) return;
+  const saved = readChatBackgrounds();
+  const all = forAll ?? document.getElementById('bg-all')?.checked ?? false;
+  if (all) {
+    saved.all = id;
+    delete saved.chats[state.active.id];
+  } else {
+    saved.chats[state.active.id] = id;
+  }
+  try { localStorage.setItem(CHAT_BG_KEY, JSON.stringify(saved)); } catch { /* private mode: applies until reload */ }
+  applyChatBackground();
+  document.querySelectorAll('#bg-picker [data-bg]').forEach((b) => b.setAttribute('aria-checked', String(b.dataset.bg === id)));
+}
+
+function backgroundPickerHtml() {
+  const current = currentChatBackground();
+  const saved = readChatBackgrounds();
+  const usesAll = !saved.chats[state.active.id];
+  return `<div class="bg-picker" id="bg-picker" role="dialog" aria-labelledby="bg-picker-title" hidden>
+    <div class="bg-picker__head">
+      <h2 id="bg-picker-title">Chat background</h2>
+      <button class="icon-button" type="button" data-action="close-bg" aria-label="Close">${icon('close')}</button>
+    </div>
+    <div class="bg-picker__grid" role="radiogroup" aria-labelledby="bg-picker-title">
+      ${CHAT_BACKGROUNDS.map(([id, label]) => `<button class="bg-swatch" type="button" role="radio" data-bg="${id}" data-chat-bg="${id}"
+        aria-checked="${id === current}"><span class="bg-swatch__name">${label}</span></button>`).join('')}
+    </div>
+    <label class="checkbox bg-picker__all"><input type="checkbox" id="bg-all"${usesAll ? ' checked' : ''}> <span>Use for all my chats</span></label>
+    <p class="bg-picker__note">Only you see your chat background.</p>
+  </div>`;
+}
+
+function toggleBackgroundPicker(force) {
+  let picker = document.getElementById('bg-picker');
+  const button = document.querySelector('[data-action="background"]');
+  if (!state.active) return;
+  const open = force ?? (!picker || picker.hidden);
+  if (open && !picker) {
+    main.insertAdjacentHTML('beforeend', backgroundPickerHtml());
+    picker = document.getElementById('bg-picker');
+  }
+  if (!picker) return;
+  if (open) picker.outerHTML = backgroundPickerHtml(); // fresh state for this chat
+  picker = document.getElementById('bg-picker');
+  picker.hidden = !open;
+  button?.setAttribute('aria-expanded', String(open));
+  if (open) picker.querySelector('[aria-checked="true"]')?.focus();
 }
 
 function insertEmoji(emoji) {
