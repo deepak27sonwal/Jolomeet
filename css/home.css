@@ -638,3 +638,64 @@
   .cta__art img { height: 220px; }
   .cta__body { padding-bottom: 0; }
 }
+
+/* ---------- Couple illustrations in the sections ---------- */
+.way__art,
+.step__art,
+.features__art {
+  display: block;
+  overflow: hidden;
+}
+
+.way__art img,
+.step__art img,
+.features__art img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* "Two ways to meet": a picture across the top of each card */
+.way__art {
+  aspect-ratio: 16 / 9;
+  border-radius: var(--radius-lg);
+}
+
+.way__art img { object-position: center 40%; }
+.way--account .way__art { border: 3px solid rgba(255, 255, 255, 0.35); box-shadow: 0 12px 30px rgba(30, 10, 60, 0.3); }
+.way--account .way__art img { object-position: center 60%; }
+
+/* features: picture beside the four cards */
+.features {
+  display: grid;
+  grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.4fr);
+  align-items: center;
+  gap: var(--space-6);
+}
+
+.features .feature-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
+.features__art {
+  border-radius: var(--radius-xl);
+  box-shadow: 0 24px 50px rgba(160, 48, 240, 0.2), 0 10px 24px rgba(233, 30, 120, 0.14);
+}
+
+/* "How it works": picture on top, the step number sits on its lower edge */
+.step__art {
+  aspect-ratio: 4 / 3;
+  margin-bottom: calc(var(--space-3) - 22px);
+  border-radius: var(--radius-lg);
+}
+
+.step__art img { object-position: center top; }
+.step__number { position: relative; border: 4px solid #FFFFFF; box-sizing: content-box; }
+
+@media (max-width: 860px) {
+  .features { grid-template-columns: minmax(0, 1fr); }
+  .features__art { width: min(100%, 420px); margin-inline: auto; }
+}
+
+@media (max-width: 380px) {
+  .features .feature-grid { grid-template-columns: minmax(0, 1fr); }
+}

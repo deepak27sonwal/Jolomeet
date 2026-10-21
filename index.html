@@ -20,7 +20,7 @@
   <link rel="stylesheet" href="css/layout.css">
   <link rel="stylesheet" href="css/components.css">
   <link rel="stylesheet" href="css/sparkle.css?v=4">
-  <link rel="stylesheet" href="css/home.css?v=4">
+  <link rel="stylesheet" href="css/home.css?v=5">
   <link rel="stylesheet" href="css/motion.css">
   <script src="js/page-transition.js"></script>
   <script type="module" src="js/home.js"></script>
@@ -149,6 +149,10 @@
 
         <div class="ways">
           <article class="way way--random neon" aria-labelledby="way-random-title">
+            <picture class="way__art">
+              <source srcset="assets/images/couple-search.webp" type="image/webp">
+              <img src="assets/images/couple-search.png" alt="" width="800" height="776" loading="lazy" decoding="async">
+            </picture>
             <span class="way__tag"><svg class="icon icon--sm" aria-hidden="true"><use href="assets/icons/sprite.svg#shuffle"/></svg>Random · No sign-up</span>
             <h3 id="way-random-title">Meet someone new, right now</h3>
             <p class="way__lead">Get matched instantly with someone who shares your vibe. Skip to the next person any time.</p>
@@ -177,6 +181,10 @@
               <i style="--x:88%;--y:8%;--s:16px;--d:0s"></i><i style="--x:78%;--y:30%;--s:9px;--d:1.1s"></i>
               <i style="--x:92%;--y:62%;--s:12px;--d:.6s"></i><i style="--x:60%;--y:90%;--s:10px;--d:1.8s"></i>
             </div>
+            <picture class="way__art">
+              <source srcset="assets/images/couple-back-to-back.webp" type="image/webp">
+              <img src="assets/images/couple-back-to-back.png" alt="" width="800" height="869" loading="lazy" decoding="async">
+            </picture>
             <span class="way__tag"><svg class="icon icon--sm" aria-hidden="true"><use href="assets/icons/sprite.svg#user"/></svg>With your account · Free</span>
             <h3 id="way-account-title">Keep the people you click with</h3>
             <p class="way__lead">Everything in Random, plus a home for the friends you make.</p>
@@ -207,28 +215,34 @@
           <p>Little things that make meeting someone new feel easy, fun and safe.</p>
         </header>
 
-        <ul class="feature-grid" role="list">
-          <li class="card card--interactive feature-card neon">
-            <span class="icon-badge"><svg class="icon" aria-hidden="true"><use href="assets/icons/sprite.svg#dice"/></svg></span>
-            <h3>Icebreakers</h3>
-            <p>No awkward silence: you both see the same fun question, and either of you can draw a new one.</p>
-          </li>
-          <li class="card card--interactive feature-card neon">
-            <span class="icon-badge"><svg class="icon" aria-hidden="true"><use href="assets/icons/sprite.svg#heart"/></svg></span>
-            <h3>Stay in Touch</h3>
-            <p>Tap the heart if you click. Only if you both do, you're connected, so a one-sided tap is never seen.</p>
-          </li>
-          <li class="card card--interactive feature-card neon">
-            <span class="icon-badge"><svg class="icon" aria-hidden="true"><use href="assets/icons/sprite.svg#eye"/></svg></span>
-            <h3>Reveal Together</h3>
-            <p>Video calls start voice-only. Cameras turn on only when you both tap Reveal.</p>
-          </li>
-          <li class="card card--interactive feature-card neon">
-            <span class="icon-badge"><svg class="icon" aria-hidden="true"><use href="assets/icons/sprite.svg#mic"/></svg></span>
-            <h3>Voice Notes</h3>
-            <p>Say it with your voice: send short voice messages in any chat.</p>
-          </li>
-        </ul>
+        <div class="features">
+          <picture class="features__art">
+            <source srcset="assets/images/couple-connecting.webp" type="image/webp">
+            <img src="assets/images/couple-connecting.png" alt="" width="800" height="763" loading="lazy" decoding="async">
+          </picture>
+          <ul class="feature-grid" role="list">
+            <li class="card card--interactive feature-card neon">
+              <span class="icon-badge"><svg class="icon" aria-hidden="true"><use href="assets/icons/sprite.svg#dice"/></svg></span>
+              <h3>Icebreakers</h3>
+              <p>No awkward silence: you both see the same fun question, and either of you can draw a new one.</p>
+            </li>
+            <li class="card card--interactive feature-card neon">
+              <span class="icon-badge"><svg class="icon" aria-hidden="true"><use href="assets/icons/sprite.svg#heart"/></svg></span>
+              <h3>Stay in Touch</h3>
+              <p>Tap the heart if you click. Only if you both do, you're connected, so a one-sided tap is never seen.</p>
+            </li>
+            <li class="card card--interactive feature-card neon">
+              <span class="icon-badge"><svg class="icon" aria-hidden="true"><use href="assets/icons/sprite.svg#eye"/></svg></span>
+              <h3>Reveal Together</h3>
+              <p>Video calls start voice-only. Cameras turn on only when you both tap Reveal.</p>
+            </li>
+            <li class="card card--interactive feature-card neon">
+              <span class="icon-badge"><svg class="icon" aria-hidden="true"><use href="assets/icons/sprite.svg#mic"/></svg></span>
+              <h3>Voice Notes</h3>
+              <p>Say it with your voice: send short voice messages in any chat.</p>
+            </li>
+          </ul>
+        </div>
       </div>
     </section>
 
@@ -242,16 +256,28 @@
 
         <ol class="steps" role="list">
           <li class="card step neon">
+            <picture class="step__art">
+              <source srcset="assets/images/couple-dreaming.webp" type="image/webp">
+              <img src="assets/images/couple-dreaming.png" alt="" width="800" height="720" loading="lazy" decoding="async">
+            </picture>
             <span class="step__number" aria-hidden="true">1</span>
             <h3>Say who you are</h3>
             <p>Just your name, gender and age. Or log in to keep friends and chats.</p>
           </li>
           <li class="card step neon">
+            <picture class="step__art">
+              <source srcset="assets/images/couple-matched-phones.webp" type="image/webp">
+              <img src="assets/images/couple-matched-phones.png" alt="" width="800" height="874" loading="lazy" decoding="async">
+            </picture>
             <span class="step__number" aria-hidden="true">2</span>
             <h3>Choose text, audio or video</h3>
             <p>Pick your interests right before you match, or skip to meet anyone.</p>
           </li>
           <li class="card step neon">
+            <picture class="step__art">
+              <source srcset="assets/images/couple-texting.webp" type="image/webp">
+              <img src="assets/images/couple-texting.png" alt="" width="800" height="824" loading="lazy" decoding="async">
+            </picture>
             <span class="step__number" aria-hidden="true">3</span>
             <h3>Meet someone and start talking</h3>
             <p>Say hi! Skip to the next match whenever you like.</p>
