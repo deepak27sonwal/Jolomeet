@@ -215,3 +215,16 @@
 
   .auth__art--mobile img { object-position: center 22%; }
 }
+
+/* Phones: the card at 80% size (same approach as the homepage cards).
+   zoom shrinks padding, picture, text and buttons together; browsers without
+   zoom (Firefox before 126) keep the full-size card. */
+@media (max-width: 640px) {
+  .auth__card {
+    zoom: 0.8;
+    width: 80%;
+  }
+
+  /* typed text stays 16px on screen (20px x 0.8) so iPhones don't zoom into fields */
+  .auth__card .input { font-size: 1.25rem; }
+}
