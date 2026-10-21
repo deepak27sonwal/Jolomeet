@@ -849,3 +849,99 @@
 
 .bg-picker__all { font-size: var(--text-sm); }
 .bg-picker__note { color: var(--color-text-muted); font-size: var(--text-xs); }
+
+/* ---------- Replies and copy (js/chat.js) ---------- */
+.msg { position: relative; touch-action: pan-y; } /* sideways swipes go to the reply gesture */
+.msg__row { display: flex; align-items: center; gap: var(--space-1); max-width: 100%; }
+.msg--out .msg__row { flex-direction: row-reverse; }
+
+/* small Reply / Copy buttons next to the bubble: on hover with a mouse, after press-and-hold on touch */
+.msg__tools { display: none; flex-shrink: 0; gap: 2px; }
+.msg--tools-open .msg__tools { display: flex; }
+
+@media (hover: hover) {
+  .msg:hover .msg__tools,
+  .msg:focus-within .msg__tools { display: flex; }
+}
+
+.msg__tool {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 1px solid var(--color-border);
+  border-radius: 50%;
+  background: var(--color-bg);
+  color: var(--color-nav);
+  box-shadow: var(--shadow-sm);
+}
+
+.msg__tool:hover { background: var(--color-accent-soft); color: var(--color-accent); }
+.msg__tool .icon { width: 15px; height: 15px; }
+
+/* the quoted message above a reply */
+.msg__quote {
+  display: grid;
+  gap: 1px;
+  max-width: 100%;
+  margin-bottom: 3px;
+  padding: 5px 10px;
+  border: 0;
+  border-left: 3px solid var(--color-secondary);
+  border-radius: 10px;
+  background: rgba(233, 30, 120, 0.08);
+  color: var(--color-text);
+  font-size: var(--text-xs);
+  text-align: left;
+  cursor: pointer;
+}
+
+.msg--in .msg__quote { border-left-color: var(--color-accent); background: rgba(139, 44, 245, 0.08); }
+.msg__quote-name { color: var(--color-primary-pressed); font-weight: var(--weight-bold); }
+.msg--in .msg__quote-name { color: var(--color-accent-pressed); }
+.msg__quote-text { overflow: hidden; color: var(--color-text-muted); text-overflow: ellipsis; white-space: nowrap; }
+
+/* swipe to reply: an arrow appears behind the message as it slides */
+.msg--swiping::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: -38px;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--color-accent-soft) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238B2CF5' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9 14 4 9l5-5'/%3E%3Cpath d='M4 9h10.5a5.5 5.5 0 0 1 0 11H11'/%3E%3C/svg%3E") center / 15px no-repeat;
+  opacity: 0.45;
+  transform: translateY(-50%) scale(0.8);
+  transition: opacity 120ms, transform 120ms;
+}
+
+.msg--swipe-ready::before { opacity: 1; transform: translateY(-50%) scale(1); }
+
+/* jumping to a quoted message briefly highlights it */
+.msg--flash .msg__bubble,
+.msg--flash .msg__image { box-shadow: 0 0 0 3px var(--color-secondary); }
+
+@media (prefers-reduced-motion: no-preference) {
+  .msg--flash .msg__bubble,
+  .msg--flash .msg__image { transition: box-shadow 300ms; }
+}
+
+/* "Replying to …" above the message box */
+.reply-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3) var(--space-2) var(--space-4);
+  border-top: 1px solid var(--color-border);
+  background: var(--color-bg-blush);
+}
+
+.reply-bar[hidden] { display: none; }
+.reply-bar > .icon { flex-shrink: 0; color: var(--color-accent); }
+.reply-bar__text { display: grid; flex: 1; min-width: 0; font-size: var(--text-sm); }
+.reply-bar__text strong { color: var(--color-heading); }
+.reply-bar__text span { overflow: hidden; color: var(--color-text-muted); text-overflow: ellipsis; white-space: nowrap; }
+.reply-bar + .chat-composer { border-top: 0; }
+.chat-messages { overflow-x: hidden; } /* a swiped bubble never scrolls the list sideways */
