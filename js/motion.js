@@ -46,7 +46,7 @@ export function initReveal() {
 }
 
 // Glitter, shine and neon animations only run while they're on screen.
-const EFFECTS = '.sparkles, .shine-text, .feature-card, .step, .way--random';
+const EFFECTS = '.sparkles, .shine-text, .neon';
 
 export function pauseOffscreenEffects() {
   if (!('IntersectionObserver' in window)) return;
