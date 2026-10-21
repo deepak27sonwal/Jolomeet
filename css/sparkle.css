@@ -2,7 +2,8 @@
    - .glitter: a fine, static glitter-dust texture for coloured surfaces
    - .sparkles > i: four-point stars, placed with --x / --y / --s and
      twinkling (delay --d) unless the device asks for reduced motion
-   - .shine-text: gradient text with a slow glossy sweep */
+   - .shine-text: gradient text with a slow glossy sweep
+   - .neon: a pink-purple-cyan light running around a card's edge */
 
 .glitter { position: relative; isolation: isolate; }
 
@@ -97,4 +98,54 @@
 @media (prefers-reduced-motion: no-preference) and (hover: hover) {
   .btn--gloss::after { transition: transform 700ms var(--ease-out); }
   .btn--gloss:hover::after { transform: translateX(120%); }
+}
+
+/* ---------- Neon card edge ----------
+   A large conic-gradient square spins behind a white face inset by --neon-width,
+   so only a thin ring of it shows. Rotating with transform works in every
+   browser. Set --neon-start to begin at a different point and --neon-radius to
+   the card's corner radius. */
+.neon {
+  --neon-width: 3px;
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  border: 0;
+  border-radius: var(--neon-radius, var(--radius-xl));
+  background: #FFD0E6;
+  box-shadow: 0 8px 26px rgba(233, 30, 120, 0.14), 0 0 22px rgba(192, 38, 211, 0.16);
+}
+
+.neon::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: -2;
+  width: 250%;
+  aspect-ratio: 1;
+  background: conic-gradient(transparent 0deg, transparent 220deg,
+    #FF4F9A 262deg, #C026D3 298deg, #22D3EE 330deg, #FF4F9A 352deg, transparent 360deg);
+  transform: translate(-50%, -50%) rotate(var(--neon-start, 0deg));
+  will-change: transform; /* spins on the GPU */
+  pointer-events: none;
+}
+
+.neon::after {
+  content: "";
+  position: absolute;
+  inset: var(--neon-width);
+  z-index: -1;
+  border-radius: calc(var(--neon-radius, var(--radius-xl)) - var(--neon-width));
+  background: #FFFFFF;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .neon::before { animation: neon-run var(--neon-speed, 4.5s) linear var(--neon-delay, 0s) infinite; }
+}
+
+@keyframes neon-run {
+  from { transform: translate(-50%, -50%) rotate(0deg); }
+  to { transform: translate(-50%, -50%) rotate(360deg); }
 }

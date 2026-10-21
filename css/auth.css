@@ -12,11 +12,9 @@
   display: grid;
   grid-template-columns: minmax(0, 0.9fr) minmax(0, 1fr);
   width: min(100%, 1000px);
-  overflow: hidden;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-xl);
-  background: var(--color-bg);
-  box-shadow: var(--shadow-lg);
+  padding: 3px; /* room for the neon edge (.neon in css/sparkle.css) */
+  box-shadow: var(--shadow-lg), 0 0 30px rgba(192, 38, 211, 0.18);
+  --neon-speed: 6s;
 }
 
 /* ---------- Welcome panel ---------- */
@@ -28,6 +26,7 @@
   gap: var(--space-8);
   overflow: hidden;
   padding: clamp(2rem, 1.5rem + 2vw, 3rem);
+  border-radius: calc(var(--radius-xl) - 3px) 0 0 calc(var(--radius-xl) - 3px);
   background: linear-gradient(155deg, #4C1D95 0%, #8B2CF5 55%, #E91E78 100%);
   color: var(--color-on-primary);
 }
@@ -178,7 +177,7 @@
 
 @media (max-width: 480px) {
   .auth { padding-inline: var(--space-3); align-items: start; }
-  .auth__card { border-radius: var(--radius-lg); }
+  .auth__card { --neon-radius: var(--radius-lg); }
 }
 
 /* glitter (css/sparkle.css): stars around the card, dust on the welcome panel */
