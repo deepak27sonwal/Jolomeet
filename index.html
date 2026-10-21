@@ -118,11 +118,13 @@
           </div>
         </div>
 
-        <div class="hero__visual" role="img" aria-label="Illustration of a smiling person meeting new friends">
+        <div class="hero__visual" role="img" aria-label="Illustration of a young man and woman on their phones, each searching for someone to meet">
           <svg class="hero__crown icon" aria-hidden="true"><use href="assets/icons/sprite.svg#crown"/></svg>
           <div class="hero__photo">
-            <img src="assets/images/hero-portrait.svg" alt="" width="400" height="500" fetchpriority="high">
-            <span class="hero__script" aria-hidden="true">Good Vibes<br>Only &#9825;</span>
+            <picture>
+              <source srcset="assets/images/couple-finding.webp" type="image/webp">
+              <img src="assets/images/couple-finding.jpg" alt="" width="900" height="756" fetchpriority="high">
+            </picture>
           </div>
           <div class="hero__tag" aria-hidden="true">
             <span class="hero__tag-icon"><svg class="icon" aria-hidden="true"><use href="assets/icons/sprite.svg#globe"/></svg></span>
@@ -267,15 +269,21 @@
             <i style="--x:50%;--y:12%;--s:12px;--d:.9s"></i><i style="--x:97%;--y:22%;--s:16px;--d:0s"></i>
             <i style="--x:80%;--y:86%;--s:9px;--d:2s"></i>
           </div>
-          <div>
-            <h2 id="cta-title">Ready to meet someone new?</h2>
-            <p>Your next favourite conversation is one tap away.</p>
+          <div class="cta__body">
+            <div>
+              <h2 id="cta-title">Ready to meet someone new?</h2>
+              <p>Your next favourite conversation is one tap away.</p>
+            </div>
+            <div class="cta__actions">
+              <a class="btn btn--secondary btn--lg btn--gloss" href="chat.html?mode=random" data-start="text">Start Text Chat</a>
+              <a class="btn btn--outline-light btn--lg" href="video.html" data-start="video">Start Video Chat</a>
+              <a class="btn btn--outline-light btn--lg" href="audio.html" data-start="audio">Start Audio Call</a>
+            </div>
           </div>
-          <div class="cta__actions">
-            <a class="btn btn--secondary btn--lg btn--gloss" href="chat.html?mode=random" data-start="text">Start Text Chat</a>
-            <a class="btn btn--outline-light btn--lg" href="video.html" data-start="video">Start Video Chat</a>
-            <a class="btn btn--outline-light btn--lg" href="audio.html" data-start="audio">Start Audio Call</a>
-          </div>
+          <picture class="cta__art">
+            <source srcset="assets/images/couple-chatting.webp" type="image/webp">
+            <img src="assets/images/couple-chatting-sm.png" alt="" width="581" height="700" loading="lazy">
+          </picture>
         </div>
       </div>
     </section>
