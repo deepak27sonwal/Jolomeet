@@ -96,20 +96,8 @@
 
 .call-orb__core .icon { width: 36px; height: 36px; }
 
-.call-orb--searching .call-orb__core { background: var(--gradient-primary); box-shadow: var(--shadow-button); }
 .call-orb--ended .call-orb__core { background: var(--color-accent-soft); color: var(--color-nav); box-shadow: none; }
 .call-orb--ended::before, .call-orb--ended::after { display: none; }
-
-/* the rings only move while searching: they mean "looking for someone" */
-@media (prefers-reduced-motion: no-preference) {
-  .call-orb--searching::before { animation: call-ring 1.6s var(--ease-out) infinite; }
-  .call-orb--searching::after { animation: call-ring 1.6s var(--ease-out) 0.8s infinite; }
-}
-
-@keyframes call-ring {
-  from { transform: scale(0.7); opacity: 0.35; }
-  to { transform: scale(1.45); opacity: 0; }
-}
 
 /* ---------- Partner + voice ring ---------- */
 .call-partner { display: grid; justify-items: center; gap: var(--space-2); }
@@ -345,23 +333,6 @@
 
 .call-screen.is-media h1 { color: var(--color-on-primary); font-size: clamp(1.25rem, 1rem + 1vw, 1.75rem); }
 .call-screen.is-media .call-timer { color: rgba(255, 255, 255, 0.9); }
-
-.call-searching-dot {
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  background: var(--color-primary);
-  box-shadow: 0 0 0 0 rgba(233, 30, 120, 0.6);
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  .call-searching-dot { animation: searching-pulse 1.4s infinite; }
-}
-
-@keyframes searching-pulse {
-  70% { box-shadow: 0 0 0 16px rgba(233, 30, 120, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(233, 30, 120, 0); }
-}
 
 .call-hud {
   display: flex;

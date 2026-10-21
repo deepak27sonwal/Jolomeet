@@ -160,7 +160,7 @@ function renderSearching() {
   if (VIDEO) {
     setScreen('searching', `
       <div class="call-overlay call-overlay--center">
-        <span class="call-searching-dot" aria-hidden="true"></span>
+        <div class="heart-beat heart-beat--sm" aria-hidden="true"><span class="heart-beat__ring"></span><span class="heart-beat__ring"></span><span class="heart-beat__heart">${icon('video')}</span></div>
         <h1>${COPY.searching}</h1>
         <p class="call-timer" id="search-timer">0:00</p>
         ${chipsHtml(interests())}
@@ -172,7 +172,7 @@ function renderSearching() {
     return;
   }
   setScreen('searching', `
-    <div class="call-orb call-orb--searching" aria-hidden="true"><span class="call-orb__core">${icon('phone')}</span></div>
+    <div class="heart-beat" aria-hidden="true"><span class="heart-beat__ring"></span><span class="heart-beat__ring"></span><span class="heart-beat__heart">${icon('mic')}</span></div>
     <h1>${COPY.searching}</h1>
     <p class="call-timer" id="search-timer">0:00</p>
     ${chipsHtml(interests())}

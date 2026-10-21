@@ -1339,7 +1339,7 @@ function startMatching({ push = false } = {}) {
     ? `<ul class="chip-list" role="list" aria-label="Matching on">${interests.map((s) => `<li class="chip chip--static">${esc(state.labels[s] || s)}</li>`).join('')}</ul>`
     : '<p>Matching with anyone.</p>';
   main.innerHTML = `<div class="chat-matching" aria-live="polite">
-    <div class="match-pulse" aria-hidden="true"><span class="icon-badge">${icon('shuffle')}</span></div>
+    <div class="heart-beat" aria-hidden="true"><span class="heart-beat__ring"></span><span class="heart-beat__ring"></span><span class="heart-beat__heart">${icon('chat')}</span></div>
     <h2>Finding someone for you…</h2>
     <p class="match-timer" id="match-timer">0:00</p>
     ${chips}
