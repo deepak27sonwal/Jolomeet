@@ -336,20 +336,24 @@
 .way-mode__text small { color: var(--color-text-muted); font-size: var(--text-sm); }
 .way-mode__go { color: var(--color-primary); }
 
-/* account: purple card */
+/* account: white neon card with a soft lilac wash and purple accents */
 .way--account {
-  background: linear-gradient(150deg, #5B3A9E 0%, #7C3AED 55%, #A030F0 100%);
-  color: var(--color-on-primary);
-  box-shadow: var(--shadow-button-video);
+  --neon-face: linear-gradient(160deg, #F3E9FF 0%, #FFFFFF 50%, #FFF0F7 100%);
+  --neon-start: 180deg;
+  --neon-speed: 7s;
+  --neon-delay: -3.5s;
 }
 
-.way--account h3 { color: inherit; }
-.way--account .way__lead { color: rgba(255, 255, 255, 0.85); }
-.way--account .way__tag { background: rgba(255, 255, 255, 0.18); color: var(--color-on-primary); }
-.way--account .way__note { color: rgba(255, 255, 255, 0.8); }
+.way--account .way__lead,
+.way--account .way__note { color: var(--color-text-muted); }
+.way--account .way__note .icon { color: var(--color-accent); }
+.way--account .way__tag { background: var(--color-accent-soft); color: var(--color-accent-pressed); }
+.way--account > :not(.sparkles) { position: relative; }
 
 .way__perks { display: grid; gap: var(--space-3); margin: 0; padding: 0; list-style: none; }
 .way__perks li { display: flex; align-items: center; gap: var(--space-3); }
+
+.way__perks li { color: var(--color-text); }
 
 .way__perks .icon {
   flex-shrink: 0;
@@ -357,27 +361,12 @@
   height: 22px;
   padding: 4px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.2);
+  background: var(--gradient-video);
+  color: var(--color-on-primary);
 }
 
 .way__actions { display: flex; flex-wrap: wrap; gap: var(--space-3); }
 
-.btn--light {
-  background: var(--color-bg);
-  color: var(--color-heading);
-  box-shadow: var(--shadow-sm);
-}
-
-.btn--light:hover,
-.btn--light:active { background: var(--color-accent-soft); color: var(--color-heading); }
-
-.way .btn--outline-light {
-  border: 1.5px solid rgba(255, 255, 255, 0.75);
-  background: transparent;
-  color: var(--color-on-primary);
-}
-
-.way .btn--outline-light:hover { background: rgba(255, 255, 255, 0.14); color: var(--color-on-primary); }
 
 /* ---------- Responsive ---------- */
 @media (max-width: 1023px) {
@@ -539,13 +528,6 @@
     var(--color-bg-blush);
 }
 
-/* glittery purple card and CTA */
-.way--account {
-  overflow: hidden;
-  background: linear-gradient(150deg, #4C1D95 0%, #7C3AED 50%, #C026D3 100%);
-}
-
-.way--account > :not(.sparkles) { position: relative; }
 
 @media (max-width: 860px) {
   /* stacked hero: keep stars at the edges, off the text */
@@ -587,7 +569,7 @@
 }
 
 .way__art img { object-position: center 40%; }
-.way--account .way__art { border: 3px solid rgba(255, 255, 255, 0.35); box-shadow: 0 12px 30px rgba(30, 10, 60, 0.3); }
+.way--account .way__art { box-shadow: 0 12px 28px rgba(139, 44, 245, 0.18); }
 .way--account .way__art img { object-position: center 60%; }
 
 /* features: picture beside the four cards */

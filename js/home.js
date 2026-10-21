@@ -25,11 +25,11 @@ async function adaptToVisitor() {
   const actions = document.getElementById('account-actions');
   const note = document.getElementById('account-note');
   if (session.user.is_anonymous) {
-    actions.innerHTML = '<a class="btn btn--light" href="register.html">Create Account &amp; Keep My Chats</a>';
+    actions.innerHTML = '<a class="btn btn--video btn--gloss" href="register.html">Create Account &amp; Keep My Chats</a>';
     note.textContent = "You're chatting without an account. Sign up and your chats come with you.";
   } else {
-    actions.innerHTML = '<a class="btn btn--light" href="chat.html">Open My Chats</a>'
-      + '<a class="btn btn--outline-light" href="profile.html">My Profile</a>';
+    actions.innerHTML = '<a class="btn btn--video btn--gloss" href="chat.html">Open My Chats</a>'
+      + '<a class="btn btn--secondary" href="profile.html">My Profile</a>';
     note.textContent = "You're signed in, so all of this is already yours.";
   }
 }
