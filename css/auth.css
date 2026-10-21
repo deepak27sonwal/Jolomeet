@@ -184,3 +184,34 @@
 .auth { position: relative; overflow: hidden; }
 .auth__card { position: relative; z-index: 1; }
 .auth__aside > :not(.sparkles) { position: relative; }
+
+/* couple illustration: in the welcome panel on desktop, above the form on phones */
+.auth__art {
+  display: block;
+  overflow: hidden;
+  aspect-ratio: 4 / 3;
+  border: 3px solid rgba(255, 255, 255, 0.35);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 16px 36px rgba(30, 10, 60, 0.35);
+}
+
+.auth__art img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 35%;
+}
+
+.auth__art--mobile { display: none; }
+
+@media (max-width: 860px) {
+  .auth__art--mobile {
+    display: block;
+    aspect-ratio: 16 / 10;
+    border: 0;
+    box-shadow: var(--shadow-md);
+  }
+
+  .auth__art--mobile img { object-position: center 22%; }
+}
