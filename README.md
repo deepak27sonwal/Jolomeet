@@ -16,6 +16,20 @@ python3 -m http.server 8000
 # then open http://localhost:8000
 ```
 
+## Deploying changes
+
+GitHub Pages lets browsers keep CSS and JS for 10 minutes, so right after a
+deploy a phone could mix new and old files. Before committing a CSS or JS change,
+stamp a new version on every page:
+
+```sh
+python3 scripts/stamp-version.py
+```
+
+This adds `?v=<version>` to every local stylesheet and script link and writes an
+import map, so modules loaded by other modules (`./api.js`, `./app.js`, ...) get
+the same version.
+
 ## Pages
 
 - `index.html`: homepage, including the two ways to use JoloMeet: **Random** (text, audio, video with strangers; no sign-up, guests welcome) and **With your account** (profile, connections, direct messages, saved history). Random needs no sign-up: visitors give a name, gender and age (`js/quick-start.js`) and go straight in; account features ask them to create an account (also enforced in the database)
