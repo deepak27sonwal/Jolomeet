@@ -19,6 +19,7 @@
   <link rel="stylesheet" href="css/global.css">
   <link rel="stylesheet" href="css/layout.css">
   <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/sparkle.css">
   <link rel="stylesheet" href="css/home.css">
   <link rel="stylesheet" href="css/motion.css">
   <script src="js/page-transition.js"></script>
@@ -71,21 +72,28 @@
   <main id="main">
     <!-- Hero -->
     <section class="hero" aria-labelledby="hero-title">
+      <div class="sparkles sparkles--on-light" aria-hidden="true">
+        <i style="--x:6%;--y:14%;--s:16px;--d:0s"></i><i style="--x:44%;--y:9%;--s:12px;--d:.8s"></i>
+        <i style="--x:51%;--y:56%;--s:20px;--d:1.6s"></i><i style="--x:92%;--y:10%;--s:14px;--d:.4s"></i>
+        <i style="--x:95%;--y:68%;--s:22px;--d:1.2s"></i><i style="--x:30%;--y:91%;--s:12px;--d:2s"></i>
+        <i style="--x:2%;--y:74%;--s:12px;--d:1s"></i><i style="--x:66%;--y:90%;--s:16px;--d:.2s"></i>
+      </div>
       <div class="container hero__inner">
         <div class="hero__content">
-          <h1 id="hero-title">Meet Amazing <span class="hero__line">People <span class="hero__title-accent">Worldwide</span></span></h1>
+          <p class="hero__badge"><span class="hero__badge-star" aria-hidden="true"></span>Text · Voice · Video · Free</p>
+          <h1 id="hero-title">Meet Amazing <span class="hero__line">People <span class="hero__title-accent shine-text">Worldwide</span></span></h1>
           <p class="hero__lead">Random chat, voice and video calls with real people. Discover new friends, share your vibe, and see where the conversation takes you. &#10024;</p>
 
           <div class="hero__actions">
-            <a class="btn btn--primary btn--hero" href="chat.html?mode=random" data-start="text">
+            <a class="btn btn--primary btn--hero btn--gloss" href="chat.html?mode=random" data-start="text">
               <span class="btn__icon"><svg class="icon icon--filled" aria-hidden="true"><use href="assets/icons/sprite.svg#chat"/></svg></span>
               <span class="btn__text">Start Text Chat<small>Meet someone now</small></span>
             </a>
-            <a class="btn btn--video btn--hero" href="video.html" data-start="video">
+            <a class="btn btn--video btn--hero btn--gloss" href="video.html" data-start="video">
               <span class="btn__icon"><svg class="icon icon--filled" aria-hidden="true"><use href="assets/icons/sprite.svg#video"/></svg></span>
               <span class="btn__text">Start Video Chat<small>Face to face instantly</small></span>
             </a>
-            <a class="btn btn--audio btn--hero" href="audio.html" data-start="audio">
+            <a class="btn btn--audio btn--hero btn--gloss" href="audio.html" data-start="audio">
               <span class="btn__icon"><svg class="icon" aria-hidden="true"><use href="assets/icons/sprite.svg#mic"/></svg></span>
               <span class="btn__text">Start Audio Call<small>Voice only, no camera</small></span>
             </a>
@@ -162,7 +170,11 @@
             <p class="way__note"><svg class="icon icon--sm" aria-hidden="true"><use href="assets/icons/sprite.svg#shield"/></svg>No account needed · 18+ only · Report or skip anyone</p>
           </article>
 
-          <article class="way way--account" aria-labelledby="way-account-title">
+          <article class="way way--account glitter" aria-labelledby="way-account-title">
+            <div class="sparkles" aria-hidden="true">
+              <i style="--x:88%;--y:8%;--s:16px;--d:0s"></i><i style="--x:78%;--y:30%;--s:9px;--d:1.1s"></i>
+              <i style="--x:92%;--y:62%;--s:12px;--d:.6s"></i><i style="--x:60%;--y:90%;--s:10px;--d:1.8s"></i>
+            </div>
             <span class="way__tag"><svg class="icon icon--sm" aria-hidden="true"><use href="assets/icons/sprite.svg#user"/></svg>With your account · Free</span>
             <h3 id="way-account-title">Keep the people you click with</h3>
             <p class="way__lead">Everything in Random, plus a home for the friends you make.</p>
@@ -249,13 +261,18 @@
     <!-- CTA -->
     <section class="section" aria-labelledby="cta-title">
       <div class="container">
-        <div class="cta">
+        <div class="cta glitter">
+          <div class="sparkles" aria-hidden="true">
+            <i style="--x:4%;--y:18%;--s:14px;--d:.3s"></i><i style="--x:36%;--y:80%;--s:10px;--d:1.4s"></i>
+            <i style="--x:50%;--y:12%;--s:12px;--d:.9s"></i><i style="--x:97%;--y:22%;--s:16px;--d:0s"></i>
+            <i style="--x:80%;--y:86%;--s:9px;--d:2s"></i>
+          </div>
           <div>
             <h2 id="cta-title">Ready to meet someone new?</h2>
             <p>Your next favourite conversation is one tap away.</p>
           </div>
           <div class="cta__actions">
-            <a class="btn btn--secondary btn--lg" href="chat.html?mode=random" data-start="text">Start Text Chat</a>
+            <a class="btn btn--secondary btn--lg btn--gloss" href="chat.html?mode=random" data-start="text">Start Text Chat</a>
             <a class="btn btn--outline-light btn--lg" href="video.html" data-start="video">Start Video Chat</a>
             <a class="btn btn--outline-light btn--lg" href="audio.html" data-start="audio">Start Audio Call</a>
           </div>

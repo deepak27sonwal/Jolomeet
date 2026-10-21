@@ -180,3 +180,8 @@
   .auth { padding-inline: var(--space-3); align-items: start; }
   .auth__card { border-radius: var(--radius-lg); }
 }
+
+/* glitter (css/sparkle.css): stars around the card, dust on the welcome panel */
+.auth { position: relative; overflow: hidden; }
+.auth__card { position: relative; z-index: 1; }
+.auth__aside > :not(.sparkles) { position: relative; }
