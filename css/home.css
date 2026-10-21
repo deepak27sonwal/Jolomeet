@@ -614,3 +614,40 @@
   .hero .sparkles i:nth-child(2), .hero .sparkles i:nth-child(3),
   .hero .sparkles i:nth-child(6), .hero .sparkles i:nth-child(8) { display: none; }
 }
+
+/* ---------- Boy and girl illustrations ---------- */
+.hero__visual { width: min(100%, 460px); }
+.hero__photo { aspect-ratio: auto; transform: rotate(2deg); }
+.hero__visual .hero__tag { bottom: 2%; }
+.hero__photo img { display: block; height: auto; }
+
+/* closing banner: the couple stands on its bottom edge and rises above the top */
+.cta {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  margin-top: 80px;
+  padding-bottom: 0;
+  overflow: visible;
+}
+
+.cta__body {
+  display: grid;
+  gap: var(--space-5);
+  align-self: center;
+  padding-bottom: clamp(1.25rem, 1rem + 2vw, 2.5rem);
+}
+
+.cta__art { margin-top: -110px; margin-right: clamp(0rem, 2vw, 1.5rem); }
+.cta__art img { width: auto; height: 320px; filter: drop-shadow(0 16px 24px rgba(76, 29, 149, 0.3)); }
+
+@media (max-width: 860px) {
+  .hero__visual { width: min(100%, 320px); }
+}
+
+@media (max-width: 640px) {
+  .cta { grid-template-columns: minmax(0, 1fr); margin-top: 110px; padding-bottom: clamp(1.25rem, 1rem + 2vw, 2.5rem); }
+  .cta__art { order: -1; justify-self: center; margin: -120px 0 0; }
+  .cta__art img { height: 220px; }
+  .cta__body { padding-bottom: 0; }
+}
