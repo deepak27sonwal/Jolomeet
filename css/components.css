@@ -818,3 +818,77 @@ select.input {
 }
 
 .voice__time { flex-shrink: 0; font-size: var(--text-xs); font-variant-numeric: tabular-nums; }
+
+/* ---------- Beating heart (shown while looking for a match) ---------- */
+/* <div class="heart-beat"><span class="heart-beat__ring"></span><span class="heart-beat__ring"></span>
+     <span class="heart-beat__heart">icon</span></div> */
+.heart-beat {
+  --heart: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z'/%3E%3C/svg%3E");
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 150px;
+  height: 140px;
+  margin-bottom: var(--space-2);
+}
+
+.heart-beat__ring,
+.heart-beat__heart::before {
+  -webkit-mask: var(--heart) center / contain no-repeat;
+  mask: var(--heart) center / contain no-repeat;
+}
+
+/* soft heart-shaped waves that spread out with each beat */
+.heart-beat__ring {
+  position: absolute;
+  inset: 22px;
+  background: var(--color-primary);
+  opacity: 0;
+}
+
+.heart-beat__heart {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 104px;
+  height: 104px;
+  padding-bottom: 10px; /* the heart's visual centre sits a little above the middle */
+  color: var(--color-on-primary);
+  filter: drop-shadow(0 10px 18px rgba(233, 30, 120, 0.4));
+}
+
+.heart-beat__heart::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: var(--gradient-primary);
+}
+
+.heart-beat__heart .icon { width: 30px; height: 30px; }
+
+@media (prefers-reduced-motion: no-preference) {
+  /* lub-dub: two quick beats, then a rest */
+  .heart-beat__heart { animation: heartbeat 1.3s ease-in-out infinite; }
+  .heart-beat__ring { animation: heart-wave 1.3s ease-out infinite; }
+  .heart-beat__ring + .heart-beat__ring { animation-delay: 0.2s; }
+}
+
+@keyframes heartbeat {
+  0%, 100% { transform: scale(1); }
+  14% { transform: scale(1.16); }
+  28% { transform: scale(0.98); }
+  42% { transform: scale(1.1); }
+  70% { transform: scale(1); }
+}
+
+@keyframes heart-wave {
+  0% { opacity: 0.4; transform: scale(0.85); }
+  80%, 100% { opacity: 0; transform: scale(1.7); }
+}
+
+/* smaller heart over the camera preview while a video call is searching */
+.heart-beat--sm { width: 96px; height: 90px; margin-bottom: 0; }
+.heart-beat--sm .heart-beat__ring { inset: 14px; background: #FF7AB6; }
+.heart-beat--sm .heart-beat__heart { width: 66px; height: 66px; padding-bottom: 6px; }
+.heart-beat--sm .heart-beat__heart .icon { width: 22px; height: 22px; }

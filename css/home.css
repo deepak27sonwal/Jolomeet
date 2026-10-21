@@ -564,6 +564,7 @@
   background: conic-gradient(transparent 0deg, transparent 220deg,
     #FF4F9A 262deg, #C026D3 298deg, #22D3EE 330deg, #FF4F9A 352deg, transparent 360deg);
   transform: translate(-50%, -50%) rotate(var(--neon-start, 0deg));
+  will-change: transform; /* spins on the GPU */
   pointer-events: none;
 }
 

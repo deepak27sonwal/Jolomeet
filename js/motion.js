@@ -44,3 +44,18 @@ export function initReveal() {
     observer.observe(el);
   }
 }
+
+// Glitter, shine and neon animations only run while they're on screen.
+const EFFECTS = '.sparkles, .shine-text, .feature-card, .step, .way--random';
+
+export function pauseOffscreenEffects() {
+  if (!('IntersectionObserver' in window)) return;
+  const elements = document.querySelectorAll(EFFECTS);
+  if (!elements.length) return;
+
+  const observer = new IntersectionObserver((entries) => {
+    for (const entry of entries) entry.target.classList.toggle('fx-paused', !entry.isIntersecting);
+  }, { rootMargin: '100px 0px' });
+
+  for (const el of elements) observer.observe(el);
+}
