@@ -556,3 +556,153 @@
 @media (max-width: 767px) {
   .call-screen.is-media .call-icebreaker__q { font-size: var(--text-base); }
 }
+
+/* ---------- Text chat during a video call ---------- */
+.call-chat {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  width: 320px;
+  border-left: 1px solid var(--color-border);
+  background: rgba(255, 255, 255, 0.97);
+}
+
+.call-chat[hidden] { display: none; }
+
+/* the call's own controls and your picture move left of the panel */
+.call-screen.chat-open .call-stage { right: 320px; }
+.call-screen.chat-open .call-self { right: calc(320px + var(--space-4)); }
+
+.call-chat__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-3) var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.call-chat__head h2 {
+  overflow: hidden;
+  font-size: var(--text-base);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.call-chat__head .call-icon-btn { background: var(--color-accent-soft); color: var(--color-nav); backdrop-filter: none; }
+
+.call-chat__list {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-height: 0;
+  margin: 0;
+  padding: var(--space-3);
+  overflow-y: auto;
+  list-style: none;
+}
+
+.call-chat__msg { display: flex; flex-direction: column; max-width: 85%; }
+.call-chat__msg--in { align-items: flex-start; margin-right: auto; }
+.call-chat__msg--out { align-items: flex-end; margin-left: auto; }
+
+.call-chat__bubble {
+  padding: var(--space-2) var(--space-3);
+  border-radius: 16px;
+  font-size: var(--text-sm);
+  line-height: 1.4;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.call-chat__msg--in .call-chat__bubble { border: 1px solid var(--color-border); border-bottom-left-radius: 6px; background: var(--color-bg); color: var(--color-text); }
+.call-chat__msg--out .call-chat__bubble { border-bottom-right-radius: 6px; background: var(--gradient-primary); color: var(--color-on-primary); }
+.call-chat__meta { margin-top: 2px; color: var(--color-text-muted); font-size: 0.6875rem; }
+.call-chat__meta .is-failed { color: var(--color-primary-pressed); font-weight: var(--weight-semibold); }
+.call-chat__empty { margin: auto; color: var(--color-text-muted); font-size: var(--text-sm); text-align: center; }
+
+.call-chat__form {
+  display: flex;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border-top: 1px solid var(--color-border);
+}
+
+.call-chat__input {
+  flex: 1;
+  min-width: 0;
+  min-height: 40px;
+  padding: 0 var(--space-4);
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  background: var(--color-bg-blush);
+  color: var(--color-text);
+  font-size: var(--text-base);
+}
+
+.call-chat__input:focus,
+.call-chat__input:focus-visible { border-color: var(--color-accent); box-shadow: 0 0 0 3px var(--color-accent-soft); outline: none; }
+
+.call-chat__send {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--gradient-primary);
+  color: var(--color-on-primary);
+}
+
+.call-chat__send:disabled { opacity: 0.45; cursor: not-allowed; }
+.call-chat__send .icon { width: 18px; height: 18px; }
+
+/* chat button: unread count */
+.call-chat-btn { position: relative; }
+
+.call-chat-badge {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  display: grid;
+  place-items: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  border: 2px solid #1E1636;
+  border-radius: var(--radius-pill);
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+  font-size: 0.6875rem;
+  font-weight: var(--weight-bold);
+  line-height: 1;
+}
+
+.call-saved-chat { color: var(--color-accent); font-weight: var(--weight-semibold); text-decoration: none; }
+.call-saved-chat:hover { text-decoration: underline; }
+
+@media (max-width: 767px) {
+  /* phones: the chat is a sheet over the lower half; controls stay visible above it */
+  .call-chat {
+    top: auto;
+    left: 0;
+    width: auto;
+    height: 50%;
+    border-left: 0;
+    border-top: 1px solid var(--color-border);
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  }
+
+  .call-screen.chat-open .call-stage { right: 0; bottom: 50%; padding-bottom: var(--space-2); }
+  .call-screen.chat-open .call-self { right: var(--space-3); }
+  .call-screen.chat-open .call-icebreaker,
+  .call-screen.chat-open .call-hud__shared { display: none; }
+  .call-chat__form { padding-bottom: calc(var(--space-3) + var(--safe-bottom)); }
+}

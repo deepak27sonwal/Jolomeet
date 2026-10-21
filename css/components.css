@@ -6,6 +6,7 @@
   align-items: center;
   justify-content: center;
   gap: var(--space-2);
+  max-width: 100%;
   min-height: 44px;
   padding: 0 var(--space-5);
   border: 1px solid transparent;
@@ -128,7 +129,24 @@
   font-size: var(--text-sm);
 }
 
-.btn--block { width: 100%; }
+/* full-width buttons wrap a long label onto two centred lines instead of spilling out */
+.btn--block {
+  width: 100%;
+  padding-block: var(--space-2);
+  line-height: 1.25;
+  text-align: center;
+  white-space: normal;
+}
+
+/* on narrow phones any button may wrap rather than overflow; short labels are unchanged */
+@media (max-width: 480px) {
+  .btn {
+    padding-block: 6px;
+    line-height: 1.25;
+    text-align: center;
+    white-space: normal;
+  }
+}
 
 .btn[disabled],
 .btn[aria-disabled="true"] {

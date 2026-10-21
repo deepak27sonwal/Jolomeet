@@ -56,6 +56,10 @@ const localVideo = document.getElementById('local-video');   // video only
 const selfTile = document.getElementById('self-tile');       // video only
 const remoteOff = document.getElementById('remote-off');     // video only
 const remoteAudio = document.getElementById('remote-audio'); // audio only
+const chatPanel = document.getElementById('call-chat');      // video only
+const chatList = document.getElementById('call-chat-list');
+const chatForm = document.getElementById('call-chat-form');
+const chatInput = document.getElementById('call-chat-input');
 
 const state = {
   me: null,
@@ -97,9 +101,11 @@ async function init() {
     .catch(() => {});
 
   stage.addEventListener('click', onStageClick);
+  if (chatPanel) bindCallChat();
   window.addEventListener('pagehide', leaveEverything);
   api.subscribeToInbox(state.me.id, {
     onMatched: () => { if (state.search) pollMatch(); },
+    onMessage: (message) => onCallMessage(message),
     onSession: (session) => {
       if (state.call?.sessionId === session.id && session.status === 'ended' && session.ended_by !== state.me.id) {
         endCall('partner');
@@ -235,7 +241,7 @@ function hudHtml(c, live) {
 
 function videoControlsHtml(live = false) {
   const c = state.call;
-  const extra = live && c ? `${stayButtonHtml(c)}${c.icebreakerClosed
+  const extra = live && c ? `${chatButtonHtml(c)}${stayButtonHtml(c)}${c.icebreakerClosed
     ? `<button class="call-mute" type="button" data-action="icebreaker-open" aria-label="Show an icebreaker question" title="Icebreaker">${icon('dice')}</button>` : ''}` : '';
   return `
     <div class="call-controls">
@@ -268,6 +274,7 @@ function renderEnded(reason, { duration = 0, call = null } = {}) {
       <a class="btn btn--secondary btn--lg" href="index.html">Back Home</a>
     </div>
     ${call && reason !== 'blocked' ? endedStayHtml(call) : ''}
+    ${call?.chatted && call.conversationId ? `<a class="call-note call-saved-chat" href="chat.html?c=${encodeURIComponent(call.conversationId)}">${icon('chat', 'icon icon--sm')}Your chat with ${esc(call.name)} is saved in Chats</a>` : ''}
     ${call && reason !== 'blocked' ? `<button class="btn btn--ghost btn--sm" type="button" data-action="report-ended">${icon('flag', 'icon icon--sm')}Report ${esc(call.name)}</button>` : ''}`);
   state.lastCall = call;
 }
@@ -419,6 +426,145 @@ async function openDirectChat(button) {
   }
 }
 
+/* ---------- text chat during a video call ---------- */
+// Uses the match's own conversation, so messages follow the same rules as
+// Chats (only while the call is live) and stay in Chats afterwards.
+
+const CALL_CHAT_MAX = 2000;
+
+function chatButtonHtml(c) {
+  if (!chatPanel) return '';
+  const open = !chatPanel.hidden;
+  const unread = open ? 0 : c.unread;
+  const label = unread ? `Open chat, ${unread} new message${unread === 1 ? '' : 's'}` : open ? 'Close chat' : 'Open chat';
+  return `<button class="call-mute call-chat-btn" type="button" data-action="chat" aria-controls="call-chat" aria-pressed="${open}"
+    aria-label="${label}" title="Chat">${icon('chat')}${unread ? `<span class="call-chat-badge">${unread > 9 ? '9+' : unread}</span>` : ''}</button>`;
+}
+
+function bindCallChat() {
+  const send = chatForm.querySelector('.call-chat__send');
+  chatPanel.querySelector('[data-chat-close]').addEventListener('click', () => setChatOpen(false));
+  chatInput.addEventListener('input', () => { send.disabled = !chatInput.value.trim(); });
+  chatForm.addEventListener('submit', (event) => {
+    event.preventDefault();
+    sendCallMessage();
+  });
+  chatList.addEventListener('click', (event) => {
+    const retry = event.target.closest('[data-retry]');
+    if (retry) retryCallMessage(retry.dataset.retry);
+  });
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && !chatPanel.hidden && !document.querySelector('dialog[open]')) setChatOpen(false);
+  });
+}
+
+function setChatOpen(open) {
+  if (!chatPanel) return;
+  const c = state.call;
+  const show = Boolean(open && c && state.screen === 'live');
+  chatPanel.hidden = !show;
+  screen.classList.toggle('chat-open', show);
+  if (show) {
+    c.unread = 0;
+    document.getElementById('call-chat-title').textContent = `Chat with ${c.name}`;
+    renderCallChat();
+    chatInput.focus();
+    markCallChatRead(c);
+  }
+  if (c) refreshChatButton(c);
+}
+
+function refreshChatButton(c) {
+  const button = stage.querySelector('[data-action="chat"]');
+  if (button) button.outerHTML = chatButtonHtml(c);
+}
+
+function renderCallChat() {
+  const c = state.call;
+  if (!c || !chatList) return;
+  chatList.innerHTML = c.messages.length
+    ? c.messages.map((m) => {
+      const out = m.sender_id === state.me.id;
+      let meta = '';
+      if (m.status === 'sending') meta = 'Sending…';
+      if (m.status === 'failed') {
+        meta = `<span class="is-failed">Not sent</span> <button class="msg__retry" type="button" data-retry="${esc(m.client_id)}">Retry</button>`;
+      }
+      return `<li class="call-chat__msg call-chat__msg--${out ? 'out' : 'in'}">
+        <span class="call-chat__bubble">${esc(m.body)}</span>${meta ? `<span class="call-chat__meta">${meta}</span>` : ''}</li>`;
+    }).join('')
+    : '<li class="call-chat__empty">Say hi 👋 Your messages are saved in Chats.</li>';
+  chatList.scrollTop = chatList.scrollHeight;
+}
+
+function upsertCallMessage(c, message) {
+  const index = c.messages.findIndex((m) => (message.id && m.id === message.id)
+    || (m.client_id === message.client_id && m.sender_id === message.sender_id));
+  if (index >= 0) c.messages[index] = { ...c.messages[index], ...message };
+  else c.messages.push(message);
+}
+
+/** Shows the message straight away, then stores it. Retrying reuses the client id, so it is never duplicated. */
+async function sendCallMessage(retrying = null) {
+  const c = state.call;
+  if (!c) return;
+  const body = retrying ? retrying.body : chatInput.value.trim();
+  if (!body) return;
+  if (body.length > CALL_CHAT_MAX) {
+    toast(`Messages can be up to ${CALL_CHAT_MAX} characters.`, { type: 'error' });
+    return;
+  }
+  const message = retrying || { client_id: crypto.randomUUID(), sender_id: state.me.id, kind: 'text', body };
+  if (!retrying) {
+    chatInput.value = '';
+    chatForm.querySelector('.call-chat__send').disabled = true;
+  }
+  upsertCallMessage(c, { ...message, status: 'sending' });
+  renderCallChat();
+  try {
+    const saved = await api.sendMessage({ conversationId: c.conversationId, clientId: message.client_id, body, kind: 'text' });
+    upsertCallMessage(c, { ...saved, status: 'sent' });
+  } catch (error) {
+    const saved = error?.code === '23505' ? await api.getMessageByClientId(message.client_id).catch(() => null) : null;
+    if (saved) {
+      upsertCallMessage(c, { ...saved, status: 'sent' });
+    } else {
+      upsertCallMessage(c, { ...message, status: 'failed' });
+      toast(error?.code === '42501' ? 'You can’t send messages in this call right now.' : friendlyError(error), { type: 'error' });
+    }
+  }
+  if (state.call === c) renderCallChat();
+}
+
+function retryCallMessage(clientId) {
+  const message = state.call?.messages.find((m) => m.client_id === clientId && m.status === 'failed');
+  if (message) sendCallMessage(message);
+}
+
+/** New message from Realtime: show it, or count it and show a short preview while the chat is closed. */
+function onCallMessage(message) {
+  const c = state.call;
+  if (!c || message.conversation_id !== c.conversationId || message.kind !== 'text' || message.deleted_at) return;
+  upsertCallMessage(c, { ...message, status: 'sent' });
+  if (!chatPanel || message.sender_id === state.me.id) {
+    if (chatPanel && !chatPanel.hidden) renderCallChat();
+    return;
+  }
+  if (!chatPanel.hidden) {
+    renderCallChat();
+    markCallChatRead(c);
+    return;
+  }
+  c.unread += 1;
+  refreshChatButton(c);
+  const preview = message.body.length > 80 ? `${message.body.slice(0, 80)}…` : message.body;
+  toast(`💬 ${c.name}: ${preview}`);
+}
+
+function markCallChatRead(c) {
+  api.markConversationRead(c.conversationId, state.me.id).catch(() => {});
+}
+
 function renderError(title, message, { retry = true, extra = '' } = {}) {
   setScreen('error', `
     <div class="call-orb call-orb--ended" aria-hidden="true"><span class="call-orb__core">${icon('alert')}</span></div>
@@ -504,6 +650,7 @@ function onStageClick(event) {
     'icebreaker-next': nextIcebreaker,
     'icebreaker-close': () => { if (state.call) { state.call.icebreakerClosed = true; rerenderCall(state.call); } },
     'icebreaker-open': () => { if (state.call) { state.call.icebreakerClosed = false; rerenderCall(state.call); } },
+    chat: () => setChatOpen(chatPanel?.hidden ?? false),
     next: () => endCall('me', { next: true }),
     end: () => endCall('me'),
     report: () => report(state.call),
@@ -753,6 +900,8 @@ async function connect(match) {
     remoteCameraOff: false,
     icebreaker: 0,           // how many times "New question" was pressed (shared)
     icebreakerClosed: false,
+    messages: [],            // text chat during the call (kept in the conversation)
+    unread: 0,
     liked: false,            // you tapped "Stay in touch" (only you can see this)
     mutual: null,            // 'mutual' | 'mutual_needs_account'
     iRevealed: false,
@@ -904,12 +1053,16 @@ async function endCall(reason, { next = false } = {}) {
     duration,
     call: {
       name: call.name, partnerId: call.partnerId, sessionId: call.sessionId, conversationId: call.conversationId,
-      liked: call.liked, mutual: call.mutual,
+      liked: call.liked, mutual: call.mutual, chatted: call.messages.some((m) => m.status === 'sent'),
     },
   });
 }
 
 function teardown(call) {
+  if (chatPanel) {
+    setChatOpen(false);
+    chatList.innerHTML = '';
+  }
   call.timers.forEach((t) => { clearInterval(t); clearTimeout(t); });
   clearTimeout(call.dropTimer);
   call.stopLevel?.();
