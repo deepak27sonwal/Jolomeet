@@ -546,15 +546,62 @@
 
 .section-header .eyebrow::before { width: 12px; height: 12px; }
 
-/* glass cards with a pink-to-purple edge */
+/* neon cards: a bright pink-purple-cyan light runs around the edge */
+@property --neon-angle {
+  syntax: "<angle>";
+  inherits: true; /* the glow (::before) follows its card */
+  initial-value: 0deg;
+}
+
 .feature-card,
 .step,
 .way--random {
-  border: 1.5px solid transparent;
+  --neon-angle: 0deg;
+  border: 2px solid transparent;
   background:
-    linear-gradient(rgba(255, 255, 255, 0.92), rgba(255, 255, 255, 0.92)) padding-box,
-    linear-gradient(135deg, #FFC2DD 0%, #F3D9FF 50%, #FFD9EA 100%) border-box;
+    linear-gradient(#FFFFFF, #FFFFFF) padding-box,
+    conic-gradient(from var(--neon-angle),
+      #FFD0E6 0deg, #FFD0E6 200deg,
+      #FF4F9A 260deg, #C026D3 300deg, #22D3EE 330deg, #FF4F9A 350deg, #FFD0E6 360deg) border-box;
+  box-shadow: 0 0 0 1px rgba(255, 79, 154, 0.08), 0 8px 26px rgba(233, 30, 120, 0.12), 0 0 22px rgba(192, 38, 211, 0.12);
 }
+
+.feature-card,
+.way--random { position: relative; }
+
+/* blurred copy of the light on the edge, so it glows like neon */
+.feature-card::before,
+.step::before,
+.way--random::before {
+  content: "";
+  position: absolute;
+  inset: -5px;
+  padding: 7px;
+  border-radius: inherit;
+  background: conic-gradient(from var(--neon-angle),
+    transparent 0deg, transparent 230deg,
+    #FF4F9A 265deg, #C026D3 300deg, #22D3EE 330deg, transparent 360deg);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+  filter: blur(7px) saturate(1.4);
+  pointer-events: none;
+}
+
+/* each card's light starts at a different point so they don't move in lockstep */
+.feature-card:nth-child(2), .step:nth-child(2) { --neon-angle: 90deg; }
+.feature-card:nth-child(3), .step:nth-child(3) { --neon-angle: 180deg; }
+.feature-card:nth-child(4) { --neon-angle: 270deg; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .feature-card, .step, .way--random { animation: neon-run 4.5s linear infinite; }
+  .feature-card:nth-child(2), .step:nth-child(2) { animation-delay: -1.1s; }
+  .feature-card:nth-child(3), .step:nth-child(3) { animation-delay: -2.2s; }
+  .feature-card:nth-child(4) { animation-delay: -3.3s; }
+  .way--random { animation-duration: 7s; }
+}
+
+@keyframes neon-run { from { --neon-angle: 0deg; } to { --neon-angle: 360deg; } }
 
 .feature-card {
   padding: var(--space-6) var(--space-4);
@@ -563,13 +610,13 @@
 }
 
 @media (hover: hover) {
-  .feature-card:hover {
+  .feature-card:hover,
+  .step:hover {
     border-color: transparent;
-    background:
-      linear-gradient(#FFFFFF, #FFFFFF) padding-box,
-      linear-gradient(135deg, #FF4F9A 0%, #A030F0 100%) border-box;
-    transform: translateY(-4px);
+    box-shadow: 0 0 0 1px rgba(255, 79, 154, 0.2), 0 14px 34px rgba(233, 30, 120, 0.2), 0 0 34px rgba(192, 38, 211, 0.28);
   }
+
+  .feature-card:hover { transform: translateY(-4px); }
 }
 
 .feature-card .icon-badge {
