@@ -892,3 +892,6 @@ select.input {
 .heart-beat--sm .heart-beat__ring { inset: 14px; background: #FF7AB6; }
 .heart-beat--sm .heart-beat__heart { width: 66px; height: 66px; padding-bottom: 6px; }
 .heart-beat--sm .heart-beat__heart .icon { width: 22px; height: 22px; }
+
+/* action list inside a dialog (chooseAction in js/dialogs.js) */
+.modal__choices { display: grid; gap: var(--space-2); margin-top: var(--space-4); }

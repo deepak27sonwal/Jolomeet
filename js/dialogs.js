@@ -3,6 +3,7 @@
 import { icon, setLoading, friendlyError } from './ui.js';
 
 let confirmDialog;
+let choiceDialog;
 let reportDialog;
 
 /** Asks a yes/no question. Resolves true only if the person confirms. */
@@ -17,6 +18,50 @@ export function confirmAction({ title, message, confirmLabel }) {
     confirmDialog.showModal();
     confirmDialog.querySelector('[data-confirm="no"]').focus();
   });
+}
+
+/**
+ * Offers several actions plus Cancel, e.g. "Delete for everyone" / "Delete for me".
+ * `choices`: [{ value, label, danger }]. Resolves the chosen value, or null.
+ */
+export function chooseAction({ title, message, choices }) {
+  choiceDialog ??= createChoiceDialog();
+  choiceDialog.querySelector('[data-title]').textContent = title;
+  choiceDialog.querySelector('[data-message]').textContent = message;
+  const list = choiceDialog.querySelector('[data-choices]');
+  list.replaceChildren(...choices.map(({ value, label, danger }) => Object.assign(document.createElement('button'), {
+    type: 'button',
+    className: `btn btn--block ${danger ? 'btn--danger' : 'btn--secondary'}`,
+    textContent: label,
+    value,
+  })));
+  return new Promise((resolve) => {
+    choiceDialog.returnValue = '';
+    choiceDialog.addEventListener('close', () => resolve(choiceDialog.returnValue || null), { once: true });
+    choiceDialog.showModal();
+    choiceDialog.querySelector('[data-cancel]').focus();
+  });
+}
+
+function createChoiceDialog() {
+  const dialog = document.createElement('dialog');
+  dialog.className = 'modal modal--sm';
+  dialog.setAttribute('aria-labelledby', 'choice-title');
+  dialog.setAttribute('aria-describedby', 'choice-message');
+  dialog.innerHTML = `
+    <header class="modal__header"><h2 id="choice-title" data-title></h2></header>
+    <div class="modal__body">
+      <p id="choice-message" class="text-muted" data-message></p>
+      <div class="modal__choices" data-choices></div>
+    </div>
+    <footer class="modal__footer"><button class="btn btn--ghost" type="button" data-cancel>Cancel</button></footer>`;
+  dialog.addEventListener('click', (event) => {
+    const choice = event.target.closest('[data-choices] button');
+    if (choice) dialog.close(choice.value);
+    else if (event.target.closest('[data-cancel]')) dialog.close('');
+  });
+  document.body.append(dialog);
+  return dialog;
 }
 
 /**

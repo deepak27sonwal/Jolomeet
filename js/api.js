@@ -325,9 +325,13 @@ export async function getConversationMeta(conversationId) {
   return { conversation: conv.data, participants: parts.data, session: session.data };
 }
 
-const MESSAGE_FIELDS = 'id, conversation_id, sender_id, client_id, kind, body, attachment_path, reply_to_id, created_at, deleted_at';
+const MESSAGE_FIELDS = 'id, conversation_id, sender_id, client_id, kind, body, attachment_path, reply_to_id, created_at, edited_at, deleted_at';
 
-/** Newest-last page of messages, optionally older than `before` (ISO time). */
+/**
+ * Newest-last page of messages, optionally older than `before` (ISO time).
+ * Messages you hid ("Delete for me") are left out, so a page can be short:
+ * use `hasMore` and `cursor` (the oldest message fetched, hidden or not) to page.
+ */
 export async function getMessages(conversationId, { before = null, limit = 40 } = {}) {
   let query = supabase.from('messages').select(MESSAGE_FIELDS)
     .eq('conversation_id', conversationId)
@@ -336,7 +340,18 @@ export async function getMessages(conversationId, { before = null, limit = 40 } 
   if (before) query = query.lt('created_at', before);
   const { data, error } = await query;
   if (error) throw error;
-  return data.reverse();
+  let hidden = new Set();
+  if (data.length) {
+    const result = await supabase.from('hidden_messages').select('message_id').in('message_id', data.map((m) => m.id));
+    if (result.error) throw result.error;
+    hidden = new Set(result.data.map((row) => row.message_id));
+  }
+  return {
+    messages: data.filter((m) => !hidden.has(m.id)).reverse(),
+    hidden,
+    hasMore: data.length === limit,
+    cursor: data.length ? data[data.length - 1].created_at : before,
+  };
 }
 
 export async function getMessageByClientId(clientId) {
@@ -355,6 +370,19 @@ export async function sendMessage({ conversationId, clientId, body, kind = 'text
     .single();
   if (error) throw error;
   return data;
+}
+
+/** Changes the text of your own text message. The database allows this for 5 minutes after sending. */
+export async function editMessage(id, body) {
+  const { data, error } = await supabase.from('messages').update({ body }).eq('id', id).select(MESSAGE_FIELDS).single();
+  if (error) throw error;
+  return data;
+}
+
+/** "Delete for me": hides a message only for you; the other person still sees it. */
+export async function hideMessage(id) {
+  const { error } = await supabase.from('hidden_messages').insert({ message_id: id });
+  if (error && error.code !== '23505') throw error; // already hidden is fine
 }
 
 /** Deletes your own message for everyone: the database clears its text and

@@ -2,7 +2,7 @@
 import { initApp, toast } from './app.js';
 import * as api from './api.js';
 import { icon, esc, avatarHtml, timeAgo, setLoading, friendlyError } from './ui.js';
-import { confirmAction, openReportDialog } from './dialogs.js';
+import { confirmAction, chooseAction, openReportDialog } from './dialogs.js';
 import { askAboutYou } from './quick-start.js';
 import { randomQuestion } from './icebreakers.js';
 import { canRecordVoice, startRecording, voicePlayerHtml, hydrateVoicePlayers, stopVoicePlayback, formatSeconds, MAX_VOICE_SECONDS } from './voice-note.js';
@@ -15,6 +15,7 @@ const TYPING_SEND_MS = 2500;
 const TYPING_SHOW_MS = 4000;
 const PAGE_SIZE = 40;
 const MAX_LENGTH = 2000;
+const EDIT_WINDOW_MS = 5 * 60 * 1000; // the database allows edits for 5 minutes (before_message_update)
 // Chat backgrounds (styles in css/chat.css, [data-chat-bg]). The choice is kept
 // on this device only, for all chats or one chat; nobody else sees it.
 const CHAT_BACKGROUNDS = [
@@ -370,8 +371,11 @@ async function openConversation(id, { push = false, intro = null } = {}) {
     },
     blocked: Boolean(profile?.is_blocked_by_me),
     partnerLastRead: row?.partner_last_read_at ?? null,
-    messages: messages.map((m) => ({ ...m, status: 'sent' })),
-    hasMore: messages.length === PAGE_SIZE,
+    messages: messages.messages.map((m) => ({ ...m, status: 'sent' })),
+    hidden: messages.hidden,   // ids you removed with "Delete for me"
+    hasMore: messages.hasMore,
+    cursor: messages.cursor,   // oldest message fetched so far (paging)
+    editing: null,             // your message being edited
     loadingOlder: false,
     intro,
     typingChannel: null,
@@ -705,6 +709,7 @@ function messageHtml(m, isLastOwn) {
 
   const time = new Date(m.created_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
   let meta = `<time datetime="${esc(m.created_at)}">${esc(time)}</time>`;
+  if (m.edited_at && !m.deleted_at) meta += ' · Edited';
   if (out && m.status === 'sending') meta += ' · Sending…';
   else if (out && m.status === 'failed') {
     meta += ` · <span class="is-failed">Not sent</span> <button class="msg__retry" type="button" data-retry="${esc(m.client_id)}">Retry</button>`;
@@ -712,11 +717,13 @@ function messageHtml(m, isLastOwn) {
     const read = state.active.partnerLastRead && new Date(state.active.partnerLastRead) >= new Date(m.created_at);
     meta += read ? ' · Seen' : ' · Sent';
   }
-  const canAct = m.id && !m.deleted_at && !m.status?.match(/sending|failed/);
-  const tools = canAct ? `<div class="msg__tools">
-      <button class="msg__tool" type="button" data-reply="${esc(m.id)}" aria-label="Reply" title="Reply">${icon('reply')}</button>
-      ${m.kind === 'text' ? `<button class="msg__tool" type="button" data-copy="${esc(m.id)}" aria-label="Copy text" title="Copy">${icon('copy')}</button>` : ''}
-      ${out ? `<button class="msg__tool msg__tool--danger" type="button" data-delete="${esc(m.id)}" aria-label="Delete message" title="Delete">${icon('trash')}</button>` : ''}
+  const sent = m.id && !m.status?.match(/sending|failed/);
+  const live = sent && !m.deleted_at;
+  const tools = sent ? `<div class="msg__tools">
+      ${live ? `<button class="msg__tool" type="button" data-reply="${esc(m.id)}" aria-label="Reply" title="Reply">${icon('reply')}</button>` : ''}
+      ${live && m.kind === 'text' ? `<button class="msg__tool" type="button" data-copy="${esc(m.id)}" aria-label="Copy text" title="Copy">${icon('copy')}</button>` : ''}
+      ${canEdit(m) ? `<button class="msg__tool" type="button" data-edit="${esc(m.id)}" aria-label="Edit message" title="Edit (for 5 minutes)">${icon('edit')}</button>` : ''}
+      <button class="msg__tool msg__tool--danger" type="button" data-delete="${esc(m.id)}" aria-label="Delete message" title="Delete">${icon('trash')}</button>
     </div>` : '';
   const quote = m.reply_to_id && !m.deleted_at ? quoteHtml(m.reply_to_id) : '';
   return `<div class="${classes.join(' ')}" data-id="${esc(m.id || '')}">${quote}<div class="msg__row">${content}${tools}</div><div class="msg__meta">${meta}</div></div>`;
@@ -805,15 +812,16 @@ function onMessagesScroll(event) {
 async function loadOlder() {
   const a = state.active;
   if (!a || a.loadingOlder || !a.hasMore) return;
-  const oldest = a.messages.find((m) => m.status === 'sent');
-  if (!oldest) return;
+  if (!a.cursor) return;
   a.loadingOlder = true;
   renderMessages({ keepOffset: true });
   try {
-    const page = await api.getMessages(a.id, { before: oldest.created_at, limit: PAGE_SIZE });
+    const page = await api.getMessages(a.id, { before: a.cursor, limit: PAGE_SIZE });
     if (state.active !== a) return;
-    a.messages = [...page.map((m) => ({ ...m, status: 'sent' })), ...a.messages];
-    a.hasMore = page.length === PAGE_SIZE;
+    a.messages = [...page.messages.map((m) => ({ ...m, status: 'sent' })), ...a.messages];
+    page.hidden.forEach((id) => a.hidden.add(id));
+    a.hasMore = page.hasMore;
+    a.cursor = page.cursor;
   } catch (error) {
     toast(friendlyError(error), { type: 'error' });
   } finally {
@@ -825,6 +833,7 @@ async function loadOlder() {
 /** Adds or replaces a message (matched by id or client id), keeping time order. */
 function upsertMessage(message) {
   const a = state.active;
+  if (message.id && a.hidden?.has(message.id)) return;
   const index = a.messages.findIndex((m) => (message.id && m.id === message.id)
     || (message.client_id && m.client_id === message.client_id && m.sender_id === message.sender_id));
   if (index >= 0) {
@@ -872,6 +881,10 @@ function sendText() {
   if (!input) return;
   const body = input.value.trim();
   if (!body) return;
+  if (state.active?.editing) {
+    saveEdit(body);
+    return;
+  }
   if (body.length > MAX_LENGTH) {
     toast(`Messages can be up to ${MAX_LENGTH} characters.`, { type: 'error' });
     return;
@@ -1193,7 +1206,12 @@ function bindMain() {
     }
     const remove = event.target.closest('[data-delete]');
     if (remove) {
-      deleteOwnMessage(remove.dataset.delete);
+      deleteMessage(remove.dataset.delete);
+      return;
+    }
+    const edit = event.target.closest('[data-edit]');
+    if (edit) {
+      startEdit(edit.dataset.edit);
       return;
     }
     const jump = event.target.closest('[data-jump]');
@@ -1227,6 +1245,7 @@ function bindMain() {
       background: () => toggleBackgroundPicker(),
       'close-bg': () => toggleBackgroundPicker(false),
       'cancel-reply': () => cancelReply(),
+      'cancel-edit': () => cancelEdit(),
       attach: () => fileInput.click(),
       icebreaker: addIcebreaker,
       record: startVoiceNote,
@@ -1265,6 +1284,8 @@ function bindMain() {
     } else if (picker && !picker.hidden) {
       toggleBackgroundPicker(false);
       document.querySelector('[data-action="background"]')?.focus();
+    } else if (state.active?.editing) {
+      cancelEdit();
     } else if (state.active?.replyTo) {
       cancelReply();
     } else if (state.panelOpen && !wideScreen.matches && !document.querySelector('dialog[open]')) {
@@ -1297,6 +1318,7 @@ function startReply(id) {
   const a = state.active;
   const message = a?.messages.find((m) => m.id === id);
   if (!message || message.deleted_at || !canSend(a)) return;
+  if (a.editing) cancelEdit();
   a.replyTo = message;
   closeMessageTools();
   renderReplyBar();
@@ -1319,6 +1341,14 @@ function takeReply() {
 function renderReplyBar() {
   const bar = document.getElementById('reply-bar');
   if (!bar) return;
+  const editing = state.active?.editing;
+  if (editing) {
+    bar.hidden = false;
+    bar.innerHTML = `${icon('edit')}
+      <div class="reply-bar__text"><strong>Editing message</strong><span>${esc(messageSnippet(editing))}</span></div>
+      <button class="icon-button" type="button" data-action="cancel-edit" aria-label="Cancel editing">${icon('close')}</button>`;
+    return;
+  }
   const reply = state.active?.replyTo;
   bar.hidden = !reply;
   bar.innerHTML = reply ? `${icon('reply')}
@@ -1329,30 +1359,132 @@ function renderReplyBar() {
     <button class="icon-button" type="button" data-action="cancel-reply" aria-label="Cancel reply">${icon('close')}</button>` : '';
 }
 
-async function deleteOwnMessage(id) {
+/** Delete: your own message can go for everyone or just you; anything else only for you. */
+async function deleteMessage(id) {
   const a = state.active;
-  const message = a?.messages.find((m) => m.id === id && m.sender_id === state.me.id);
-  if (!message || message.deleted_at) return;
+  const message = a?.messages.find((m) => m.id === id);
+  if (!message) return;
   closeMessageTools();
-  const ok = await confirmAction({
-    title: 'Delete this message?',
-    message: 'It will be removed for everyone in this chat. This can’t be undone.',
-    confirmLabel: 'Delete',
-  });
-  if (!ok || state.active !== a) return;
+  const mine = message.sender_id === state.me.id && !message.deleted_at;
+  const choice = mine
+    ? await chooseAction({
+      title: 'Delete this message?',
+      message: '"Delete for everyone" removes it for both of you. "Delete for me" removes it only from your view.',
+      choices: [
+        { value: 'everyone', label: 'Delete for everyone', danger: true },
+        { value: 'me', label: 'Delete for me' },
+      ],
+    })
+    : (await confirmAction({
+      title: 'Delete for you?',
+      message: `It will be removed from this chat for you only. ${message.sender_id === state.me.id ? 'The other person' : a.partner.name} still sees it.`,
+      confirmLabel: 'Delete for me',
+    })) && 'me';
+  if (!choice || state.active !== a) return;
   if (a.replyTo?.id === id) cancelReply();
+  if (a.editing?.id === id) cancelEdit();
+  if (choice === 'me') hideForMe(a, message);
+  else deleteForEveryone(a, message);
+}
+
+async function hideForMe(a, message) {
+  a.hidden.add(message.id);
+  a.messages = a.messages.filter((m) => m.id !== message.id);
+  renderMessages({ keepOffset: true });
+  try {
+    await api.hideMessage(message.id);
+  } catch (error) {
+    if (state.active !== a) return;
+    a.hidden.delete(message.id);
+    upsertMessage(message);
+    renderMessages({ keepOffset: true });
+    toast(friendlyError(error), { type: 'error' });
+  }
+}
+
+async function deleteForEveryone(a, message) {
   const before = { ...message };
   // show it as deleted straight away; put it back if the server says no
   upsertMessage({ ...message, deleted_at: new Date().toISOString(), body: null, attachment_path: null });
   renderMessages({ keepOffset: true });
   try {
-    const saved = await api.deleteMessage(id, before.attachment_path);
+    const saved = await api.deleteMessage(message.id, before.attachment_path);
     if (state.active === a) upsertMessage({ ...saved, status: 'sent' });
     refreshListSoon();
   } catch (error) {
     if (state.active !== a) return;
     upsertMessage(before);
     toast(friendlyError(error), { type: 'error' });
+  }
+  if (state.active === a) renderMessages({ keepOffset: true });
+}
+
+/* editing: your own text messages, for 5 minutes after sending */
+
+function canEdit(m) {
+  return m.sender_id === state.me.id && m.kind === 'text' && m.id && !m.deleted_at
+    && !m.status?.match(/sending|failed/) && Date.now() - new Date(m.created_at) < EDIT_WINDOW_MS;
+}
+
+function startEdit(id) {
+  const a = state.active;
+  const message = a?.messages.find((m) => m.id === id);
+  const input = document.getElementById('chat-input');
+  if (!message || !input) return;
+  closeMessageTools();
+  if (!canEdit(message)) {
+    toast('You can only edit a message for 5 minutes after sending it.');
+    renderMessages({ keepOffset: true });
+    return;
+  }
+  a.replyTo = null;
+  a.editing = message;
+  renderReplyBar();
+  input.value = message.body;
+  autosize(input);
+  updateSendButton();
+  input.focus();
+  input.setSelectionRange(input.value.length, input.value.length);
+}
+
+function cancelEdit() {
+  const a = state.active;
+  if (!a?.editing) return;
+  a.editing = null;
+  const input = document.getElementById('chat-input');
+  if (input) {
+    input.value = '';
+    autosize(input);
+    updateSendButton();
+  }
+  renderReplyBar();
+}
+
+async function saveEdit(body) {
+  const a = state.active;
+  const message = a.editing;
+  if (body.length > MAX_LENGTH) {
+    toast(`Messages can be up to ${MAX_LENGTH} characters.`, { type: 'error' });
+    return;
+  }
+  cancelEdit();
+  if (body === message.body) return;
+  if (!canEdit(message)) {
+    toast('You can only edit a message for 5 minutes after sending it.', { type: 'error' });
+    renderMessages({ keepOffset: true });
+    return;
+  }
+  const before = { ...message };
+  upsertMessage({ ...message, body, edited_at: new Date().toISOString() });
+  renderMessages({ keepOffset: true });
+  try {
+    const saved = await api.editMessage(message.id, body);
+    if (state.active === a) upsertMessage({ ...saved, status: 'sent' });
+    refreshListSoon();
+  } catch (error) {
+    if (state.active !== a) return;
+    upsertMessage(before);
+    toast(error?.code === 'JM403' ? 'You can only edit a message for 5 minutes after sending it.' : friendlyError(error), { type: 'error' });
   }
   if (state.active === a) renderMessages({ keepOffset: true });
 }
@@ -1420,7 +1552,7 @@ function bindMessageGestures() {
 
   main.addEventListener('pointerdown', (event) => {
     if (event.pointerType === 'mouse' || event.button > 0) return;
-    const el = event.target.closest('#msg-list .msg[data-id]:not(.msg--deleted)');
+    const el = event.target.closest('#msg-list .msg[data-id]');
     if (!el?.dataset.id || event.target.closest('.msg__tools, .msg__quote, button, a, audio')) return;
     drag = { el, id: el.dataset.id, x: event.clientX, y: event.clientY, dx: 0, mode: null };
     drag.hold = setTimeout(() => {
@@ -1439,6 +1571,7 @@ function bindMessageGestures() {
     if (!drag.mode) {
       if (Math.abs(dy) > 10) { reset(); return; } // scrolling
       if (dx > 10 && Math.abs(dx) > Math.abs(dy)) {
+        if (drag.el.classList.contains('msg--deleted')) { reset(); return; } // nothing to reply to
         drag.mode = 'swipe';
         clearTimeout(drag.hold);
         drag.el.classList.add('msg--swiping');
