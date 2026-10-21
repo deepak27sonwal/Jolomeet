@@ -83,6 +83,19 @@
       <section class="call-stage" id="call-stage" aria-live="polite" aria-busy="true">
         <span class="spinner" aria-hidden="true"></span>
       </section>
+      <!-- text chat during the call (messages are saved in Chats) -->
+      <aside class="call-chat" id="call-chat" aria-labelledby="call-chat-title" hidden>
+        <header class="call-chat__head">
+          <h2 id="call-chat-title">Chat</h2>
+          <button class="call-icon-btn" type="button" data-chat-close aria-label="Close chat"><svg class="icon" aria-hidden="true"><use href="assets/icons/sprite.svg#close"/></svg></button>
+        </header>
+        <ol class="call-chat__list" id="call-chat-list" role="log" aria-live="polite" aria-label="Messages"></ol>
+        <form class="call-chat__form" id="call-chat-form" autocomplete="off">
+          <label class="sr-only" for="call-chat-input">Message</label>
+          <input class="call-chat__input" id="call-chat-input" type="text" maxlength="2000" placeholder="Message…" enterkeyhint="send">
+          <button class="call-chat__send" type="submit" aria-label="Send message" disabled><svg class="icon" aria-hidden="true"><use href="assets/icons/sprite.svg#send"/></svg></button>
+        </form>
+      </aside>
     </div>
     <p class="call-safety"><svg class="icon icon--sm" aria-hidden="true"><use href="assets/icons/sprite.svg#shield"/></svg>Calls are peer-to-peer and never recorded by JoloMeet. Be kind, and use Report or Next if anyone makes you uncomfortable.</p>
   </main>
