@@ -62,7 +62,8 @@
 
 @media (prefers-reduced-motion: no-preference) {
   .sparkles i { animation: twinkle 2.6s ease-in-out var(--d, 0s) infinite; }
-  .shine-text { animation: shine 6s linear infinite; }
+  /* a quick sweep, then a rest: the text is only repainted during the sweep */
+  .shine-text { animation: shine 7s ease-in-out infinite; }
 }
 
 @keyframes twinkle {
@@ -70,7 +71,16 @@
   50% { opacity: 1; transform: scale(1) rotate(45deg); }
 }
 
-@keyframes shine { to { background-position: -250% 0; } }
+@keyframes shine {
+  0% { background-position: 0 0; }
+  30%, 100% { background-position: -250% 0; }
+}
+
+/* js/motion.js marks effects scrolled out of view; pausing them saves CPU and battery */
+.fx-paused,
+.fx-paused::before,
+.fx-paused::after,
+.fx-paused * { animation-play-state: paused !important; }
 
 /* glossy sweep across a button on hover */
 .btn--gloss { position: relative; overflow: hidden; isolation: isolate; }

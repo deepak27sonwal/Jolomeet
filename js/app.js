@@ -1,13 +1,14 @@
 // Shared bootstrapping and small utilities used by every page.
 import { initNavigation } from './navigation.js';
 import { getSession, signOut, touchPresence } from './api.js';
-import { initReveal } from './motion.js';
+import { initReveal, pauseOffscreenEffects } from './motion.js';
 import { confirmAction } from './dialogs.js';
 
 export function initApp() {
   initNavigation();
   initAuthHeader();
   initReveal();
+  pauseOffscreenEffects();
   document.querySelectorAll('[data-year]').forEach((el) => {
     el.textContent = String(new Date().getFullYear());
   });
