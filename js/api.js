@@ -325,7 +325,7 @@ export async function getConversationMeta(conversationId) {
   return { conversation: conv.data, participants: parts.data, session: session.data };
 }
 
-const MESSAGE_FIELDS = 'id, conversation_id, sender_id, client_id, kind, body, attachment_path, created_at, deleted_at';
+const MESSAGE_FIELDS = 'id, conversation_id, sender_id, client_id, kind, body, attachment_path, reply_to_id, created_at, deleted_at';
 
 /** Newest-last page of messages, optionally older than `before` (ISO time). */
 export async function getMessages(conversationId, { before = null, limit = 40 } = {}) {
@@ -346,9 +346,11 @@ export async function getMessageByClientId(clientId) {
 }
 
 /** Inserts a message. client_id makes a retry safe: the same message can't be stored twice. */
-export async function sendMessage({ conversationId, clientId, body, kind = 'text', attachmentPath = null }) {
+export async function sendMessage({ conversationId, clientId, body, kind = 'text', attachmentPath = null, replyToId = null }) {
+  const row = { conversation_id: conversationId, client_id: clientId, kind, body: body || null, attachment_path: attachmentPath };
+  if (replyToId) row.reply_to_id = replyToId; // only sent when replying, so other callers are unaffected
   const { data, error } = await supabase.from('messages')
-    .insert({ conversation_id: conversationId, client_id: clientId, kind, body: body || null, attachment_path: attachmentPath })
+    .insert(row)
     .select(MESSAGE_FIELDS)
     .single();
   if (error) throw error;

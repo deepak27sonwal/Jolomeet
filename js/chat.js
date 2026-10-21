@@ -584,6 +584,7 @@ function renderComposer() {
   }
   if (slot.querySelector('form')) return; // keep the draft
   slot.innerHTML = `
+    <div class="reply-bar" id="reply-bar" hidden></div>
     <form class="chat-composer" id="composer" autocomplete="off">
       <button class="icon-button" type="button" data-action="emoji" aria-label="Add emoji" aria-expanded="false" aria-controls="emoji-pop">${icon('smile')}</button>
       <button class="icon-button" type="button" data-action="attach" aria-label="Send a photo">${icon('image')}</button>
@@ -614,6 +615,7 @@ function renderComposer() {
     sendTypingSignal();
   });
   updateSendButton();
+  renderReplyBar();
 }
 
 function autosize(input) {
@@ -710,7 +712,35 @@ function messageHtml(m, isLastOwn) {
     const read = state.active.partnerLastRead && new Date(state.active.partnerLastRead) >= new Date(m.created_at);
     meta += read ? ' · Seen' : ' · Sent';
   }
-  return `<div class="${classes.join(' ')}" data-id="${esc(m.id || '')}">${content}<div class="msg__meta">${meta}</div></div>`;
+  const canAct = m.id && !m.deleted_at && !m.status?.match(/sending|failed/);
+  const tools = canAct ? `<div class="msg__tools">
+      <button class="msg__tool" type="button" data-reply="${esc(m.id)}" aria-label="Reply" title="Reply">${icon('reply')}</button>
+      ${m.kind === 'text' ? `<button class="msg__tool" type="button" data-copy="${esc(m.id)}" aria-label="Copy text" title="Copy">${icon('copy')}</button>` : ''}
+    </div>` : '';
+  const quote = m.reply_to_id && !m.deleted_at ? quoteHtml(m.reply_to_id) : '';
+  return `<div class="${classes.join(' ')}" data-id="${esc(m.id || '')}">${quote}<div class="msg__row">${content}${tools}</div><div class="msg__meta">${meta}</div></div>`;
+}
+
+/** Short text for a quoted message: what you'd recognise it by. */
+function messageSnippet(m) {
+  if (!m) return 'Earlier message';
+  if (m.deleted_at) return 'Message deleted';
+  if (m.kind === 'image') return '📷 Photo';
+  if (m.kind === 'voice') return '🎤 Voice message';
+  const text = String(m.body || '').replace(/\s+/g, ' ').trim();
+  return text.length > 90 ? `${text.slice(0, 90)}…` : text;
+}
+
+function senderName(m) {
+  if (!m) return '';
+  return m.sender_id === state.me.id ? 'You' : state.active.partner.name;
+}
+
+function quoteHtml(id) {
+  const original = state.active.messages.find((m) => m.id === id);
+  return `<button class="msg__quote" type="button" data-jump="${esc(id)}" aria-label="Go to the message this replies to">
+    ${original ? `<span class="msg__quote-name">${esc(senderName(original))}</span>` : ''}
+    <span class="msg__quote-text">${esc(messageSnippet(original))}</span></button>`;
 }
 
 function dayLabel(iso) {
@@ -849,7 +879,7 @@ function sendText() {
   autosize(input);
   updateSendButton();
   input.focus();
-  deliver({ client_id: crypto.randomUUID(), kind: 'text', body });
+  deliver({ client_id: crypto.randomUUID(), kind: 'text', body, reply_to_id: takeReply() });
 }
 
 async function sendImage(file) {
@@ -861,7 +891,7 @@ async function sendImage(file) {
     toast('Photos must be 5 MB or smaller.', { type: 'error' });
     return;
   }
-  deliver({ client_id: crypto.randomUUID(), kind: 'image', file, localUrl: URL.createObjectURL(file) });
+  deliver({ client_id: crypto.randomUUID(), kind: 'image', file, localUrl: URL.createObjectURL(file), reply_to_id: takeReply() });
 }
 
 /** Shows the message straight away, then stores it. Retrying reuses the client id, so it is never duplicated. */
@@ -874,6 +904,7 @@ async function deliver(draft) {
     sender_id: state.me.id,
     body: null,
     attachment_path: null,
+    reply_to_id: null,
     deleted_at: null,
     ...draft,
     created_at: new Date().toISOString(),
@@ -893,6 +924,7 @@ async function deliver(draft) {
       body: message.body,
       kind: message.kind,
       attachmentPath: message.attachment_path,
+      replyToId: message.reply_to_id,
     });
     if (state.active !== a) return;
     upsertMessage({ ...saved, status: 'sent' });
@@ -1000,6 +1032,7 @@ async function sendVoiceNote() {
     file: note.blob,
     mime: note.type,
     localUrl: URL.createObjectURL(note.blob),
+    reply_to_id: takeReply(),
   });
 }
 
@@ -1147,6 +1180,21 @@ function bindMain() {
       insertEmoji(emoji.dataset.emoji);
       return;
     }
+    const reply = event.target.closest('[data-reply]');
+    if (reply) {
+      startReply(reply.dataset.reply);
+      return;
+    }
+    const copy = event.target.closest('[data-copy]');
+    if (copy) {
+      copyMessage(copy.dataset.copy);
+      return;
+    }
+    const jump = event.target.closest('[data-jump]');
+    if (jump) {
+      jumpToMessage(jump.dataset.jump);
+      return;
+    }
     const swatch = event.target.closest('[data-bg]');
     if (swatch) {
       chooseChatBackground(swatch.dataset.bg);
@@ -1172,6 +1220,7 @@ function bindMain() {
       emoji: () => toggleEmoji(),
       background: () => toggleBackgroundPicker(),
       'close-bg': () => toggleBackgroundPicker(false),
+      'cancel-reply': () => cancelReply(),
       attach: () => fileInput.click(),
       icebreaker: addIcebreaker,
       record: startVoiceNote,
@@ -1194,7 +1243,9 @@ function bindMain() {
     if (pop && !pop.hidden && !event.target.closest('#emoji-pop, [data-action="emoji"]')) toggleEmoji(false);
     const picker = document.getElementById('bg-picker');
     if (picker && !picker.hidden && !event.target.closest('#bg-picker, [data-action="background"]')) toggleBackgroundPicker(false);
+    if (!event.target.closest('.msg--tools-open')) closeMessageTools();
   });
+  bindMessageGestures();
   main.addEventListener('change', (event) => {
     if (event.target.id === 'bg-all') chooseChatBackground(currentChatBackground(), event.target.checked);
   });
@@ -1208,6 +1259,8 @@ function bindMain() {
     } else if (picker && !picker.hidden) {
       toggleBackgroundPicker(false);
       document.querySelector('[data-action="background"]')?.focus();
+    } else if (state.active?.replyTo) {
+      cancelReply();
     } else if (state.panelOpen && !wideScreen.matches && !document.querySelector('dialog[open]')) {
       setPanelOpen(false);
     }
@@ -1230,6 +1283,153 @@ function toggleEmoji(force) {
   pop.hidden = !open;
   button?.setAttribute('aria-expanded', String(open));
   if (open) pop.querySelector('button')?.focus();
+}
+
+/* ---------- replies and copying ---------- */
+
+function startReply(id) {
+  const a = state.active;
+  const message = a?.messages.find((m) => m.id === id);
+  if (!message || message.deleted_at || !canSend(a)) return;
+  a.replyTo = message;
+  closeMessageTools();
+  renderReplyBar();
+  document.getElementById('chat-input')?.focus();
+}
+
+function cancelReply() {
+  if (!state.active) return;
+  state.active.replyTo = null;
+  renderReplyBar();
+}
+
+/** The id the next message replies to (and clears the reply bar). */
+function takeReply() {
+  const id = state.active?.replyTo?.id ?? null;
+  if (id) cancelReply();
+  return id;
+}
+
+function renderReplyBar() {
+  const bar = document.getElementById('reply-bar');
+  if (!bar) return;
+  const reply = state.active?.replyTo;
+  bar.hidden = !reply;
+  bar.innerHTML = reply ? `${icon('reply')}
+    <div class="reply-bar__text">
+      <strong>Replying to ${reply.sender_id === state.me.id ? 'yourself' : esc(state.active.partner.name)}</strong>
+      <span>${esc(messageSnippet(reply))}</span>
+    </div>
+    <button class="icon-button" type="button" data-action="cancel-reply" aria-label="Cancel reply">${icon('close')}</button>` : '';
+}
+
+async function copyMessage(id) {
+  const message = state.active?.messages.find((m) => m.id === id);
+  if (!message?.body) return;
+  closeMessageTools();
+  try {
+    await navigator.clipboard.writeText(message.body);
+  } catch {
+    // older browsers or no clipboard permission: copy through a hidden field
+    const field = Object.assign(document.createElement('textarea'), { value: message.body });
+    field.setAttribute('readonly', '');
+    field.style.cssText = 'position:fixed;opacity:0;';
+    document.body.append(field);
+    field.select();
+    const ok = document.execCommand('copy');
+    field.remove();
+    if (!ok) {
+      toast('Couldn’t copy. Press and hold the text to select it.', { type: 'error' });
+      return;
+    }
+  }
+  toast('Copied');
+}
+
+function jumpToMessage(id) {
+  const target = document.querySelector(`#msg-list .msg[data-id="${CSS.escape(id)}"]`);
+  if (!target) {
+    toast('That message is further up. Load older messages to see it.');
+    return;
+  }
+  target.scrollIntoView({ block: 'center', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+  target.classList.remove('msg--flash');
+  void target.offsetWidth; // restart the highlight
+  target.classList.add('msg--flash');
+  setTimeout(() => target.classList.remove('msg--flash'), 1600);
+}
+
+function closeMessageTools() {
+  document.querySelectorAll('.msg--tools-open').forEach((el) => el.classList.remove('msg--tools-open'));
+}
+
+/** Touch: swipe a message to the right to reply; press and hold for Reply / Copy. */
+const SWIPE_REPLY_PX = 56;
+const SWIPE_MAX_PX = 80;
+const HOLD_MS = 450;
+
+function bindMessageGestures() {
+  let drag = null;
+
+  const reset = () => {
+    if (!drag) return;
+    clearTimeout(drag.hold);
+    if (drag.el) {
+      drag.el.style.transition = 'transform 180ms var(--ease-out)';
+      drag.el.style.transform = '';
+      drag.el.classList.remove('msg--swiping', 'msg--swipe-ready');
+      const el = drag.el;
+      setTimeout(() => { el.style.transition = ''; }, 200);
+    }
+    drag = null;
+  };
+
+  main.addEventListener('pointerdown', (event) => {
+    if (event.pointerType === 'mouse' || event.button > 0) return;
+    const el = event.target.closest('#msg-list .msg[data-id]:not(.msg--deleted)');
+    if (!el?.dataset.id || event.target.closest('.msg__tools, .msg__quote, button, a, audio')) return;
+    drag = { el, id: el.dataset.id, x: event.clientX, y: event.clientY, dx: 0, mode: null };
+    drag.hold = setTimeout(() => {
+      if (!drag || drag.mode) return;
+      drag.mode = 'hold';
+      closeMessageTools();
+      el.classList.add('msg--tools-open');
+      navigator.vibrate?.(12);
+    }, HOLD_MS);
+  });
+
+  main.addEventListener('pointermove', (event) => {
+    if (!drag) return;
+    const dx = event.clientX - drag.x;
+    const dy = event.clientY - drag.y;
+    if (!drag.mode) {
+      if (Math.abs(dy) > 10) { reset(); return; } // scrolling
+      if (dx > 10 && Math.abs(dx) > Math.abs(dy)) {
+        drag.mode = 'swipe';
+        clearTimeout(drag.hold);
+        drag.el.classList.add('msg--swiping');
+      } else return;
+    }
+    if (drag.mode !== 'swipe') return;
+    drag.dx = Math.max(0, Math.min(SWIPE_MAX_PX, dx));
+    drag.el.style.transform = `translateX(${drag.dx}px)`;
+    const ready = drag.dx >= SWIPE_REPLY_PX;
+    if (ready !== drag.el.classList.contains('msg--swipe-ready')) {
+      drag.el.classList.toggle('msg--swipe-ready', ready);
+      if (ready) navigator.vibrate?.(8);
+    }
+  });
+
+  const finish = () => {
+    if (drag?.mode === 'swipe' && drag.dx >= SWIPE_REPLY_PX) startReply(drag.id);
+    reset();
+  };
+  main.addEventListener('pointerup', finish);
+  main.addEventListener('pointercancel', reset);
+  // our own Reply / Copy menu replaces the phone's long-press menu on messages
+  main.addEventListener('contextmenu', (event) => {
+    if (event.target.closest('#msg-list .msg[data-id]') && drag?.mode === 'hold') event.preventDefault();
+  });
 }
 
 /* ---------- Chat background ---------- */
