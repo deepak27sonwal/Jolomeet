@@ -565,6 +565,33 @@ function onCallMessage(message) {
   toast(`💬 ${c.name}: ${preview}`);
 }
 
+/**
+ * Safety net for the call chat: phones drop the live connection while locked or
+ * switching networks, and messages sent meanwhile would never arrive. So we also
+ * ask the database for anything newer every few seconds and when the page returns.
+ */
+async function catchUpCallChat() {
+  const c = state.call;
+  if (!c?.conversationId || c.catchingUp || document.visibilityState !== 'visible') return;
+  const since = c.messages.filter((m) => m.id && m.status === 'sent').at(-1)?.created_at || c.chatSince;
+  c.catchingUp = true;
+  try {
+    const rows = await api.getMessagesSince(c.conversationId, since);
+    if (state.call !== c) return;
+    for (const row of rows) {
+      if (!c.messages.some((m) => m.id === row.id)) onCallMessage(row);
+    }
+  } catch {
+    /* offline: try again on the next check */
+  } finally {
+    c.catchingUp = false;
+  }
+}
+
+setInterval(catchUpCallChat, 8000);
+document.addEventListener('visibilitychange', catchUpCallChat);
+window.addEventListener('online', catchUpCallChat);
+
 function markCallChatRead(c) {
   api.markConversationRead(c.conversationId, state.me.id).catch(() => {});
 }
@@ -905,6 +932,7 @@ async function connect(match) {
     icebreaker: 0,           // how many times "New question" was pressed (shared)
     icebreakerClosed: false,
     messages: [],            // text chat during the call (kept in the conversation)
+    chatSince: new Date(Date.now() - 2 * 60_000).toISOString(), // catch-up starts here (allows for clock drift)
     unread: 0,
     liked: false,            // you tapped "Stay in touch" (only you can see this)
     mutual: null,            // 'mutual' | 'mutual_needs_account'

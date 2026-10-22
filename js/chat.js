@@ -14,6 +14,7 @@ const PRESENCE_REFRESH_MS = 60_000;
 const MATCH_POLL_MS = 4000;
 const TYPING_SEND_MS = 2500;
 const TYPING_SHOW_MS = 4000;
+const CATCH_UP_MS = 8000; // safety net: check for messages the live connection missed
 const PAGE_SIZE = 40;
 const MAX_LENGTH = 2000;
 const EDIT_WINDOW_MS = 5 * 60 * 1000; // the database allows edits for 5 minutes (before_message_update)
@@ -91,8 +92,13 @@ async function init() {
     if (state.matching) api.leaveMatchQueue().catch(() => {});
   });
   document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible') markActiveRead();
+    if (document.visibilityState === 'visible') {
+      markActiveRead();
+      resync(); // phones drop the live connection while locked or in the background
+    }
   });
+  window.addEventListener('online', resync);
+  setInterval(() => catchUp(), CATCH_UP_MS);
 
   api.fetchInterests()
     .then((rows) => { state.labels = Object.fromEntries(rows.map((r) => [r.slug, r.label])); })
@@ -864,6 +870,62 @@ function upsertMessage(message) {
     a.messages.push(message);
   }
   a.messages.sort((x, y) => new Date(x.created_at) - new Date(y.created_at));
+}
+
+/* ---------- catching up on missed messages ----------
+   New messages normally arrive over the live (websocket) connection. On phones it
+   silently drops when the screen locks, the app is switched or the network
+   changes, and anything sent meanwhile never arrives. So we also ask the database:
+   every few seconds for newer messages, and in full when the page comes back. */
+
+/** Newer messages for the open chat; with `full`, also edits, deletions and reactions. */
+async function catchUp({ full = false } = {}) {
+  const a = state.active;
+  if (!a || a.catchingUp || document.visibilityState !== 'visible') return;
+  const confirmed = a.messages.filter((m) => m.id && m.status === 'sent');
+  const since = confirmed.at(-1)?.created_at;
+  a.catchingUp = true;
+  try {
+    const [newer, latest] = await Promise.all([
+      since ? api.getMessagesSince(a.id, since) : Promise.resolve([]),
+      full || !since ? api.getMessages(a.id) : Promise.resolve(null),
+    ]);
+    if (state.active !== a) return;
+    latest?.hidden.forEach((id) => a.hidden.add(id));
+    const rows = [...(latest?.messages || []), ...newer];
+    let changed = false;
+    let fromThem = false;
+    for (const row of rows) {
+      if (a.hidden.has(row.id)) continue;
+      const known = a.messages.find((m) => m.id === row.id);
+      const reactions = row.reactions || known?.reactions || {};
+      if (known && known.edited_at === row.edited_at && known.deleted_at === row.deleted_at
+        && JSON.stringify(known.reactions || {}) === JSON.stringify(reactions)) continue;
+      if (!known && row.sender_id !== state.me.id) fromThem = true;
+      upsertMessage({ ...row, reactions, status: 'sent' });
+      changed = true;
+    }
+    if (!changed) return;
+    const scroller = document.getElementById('chat-messages');
+    if (fromThem) a.typingUntil = 0;
+    a.stickToBottom = scroller ? isNearBottom(scroller) : true;
+    renderMessages({ keepOffset: !a.stickToBottom });
+    renderHeadStatus();
+    if (fromThem) {
+      markActiveRead();
+      if (!a.stickToBottom) main.querySelector('.chat-jump').hidden = false;
+    }
+  } catch {
+    /* offline: the next check or reconnect tries again */
+  } finally {
+    a.catchingUp = false;
+  }
+}
+
+/** The page is back (unlocked, reconnected, online): bring the open chat and the list up to date. */
+function resync() {
+  catchUp({ full: true });
+  refreshListSoon();
 }
 
 function onIncomingMessage(message) {
@@ -2039,6 +2101,12 @@ function subscribeRealtime() {
     },
     onMatched() {
       if (state.matching) pollMatch();
+    },
+    onStatus(status) {
+      // every (re)join after the first means the connection dropped: fetch what we missed
+      if (status !== 'SUBSCRIBED') return;
+      if (state.inboxJoined) resync();
+      state.inboxJoined = true;
     },
   }).catch(() => {
     // without realtime the page still works; the list refreshes on actions and matching polls
