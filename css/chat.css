@@ -945,3 +945,4 @@
 .reply-bar__text span { overflow: hidden; color: var(--color-text-muted); text-overflow: ellipsis; white-space: nowrap; }
 .reply-bar + .chat-composer { border-top: 0; }
 .chat-messages { overflow-x: hidden; } /* a swiped bubble never scrolls the list sideways */
+.msg__tool--danger:hover { background: var(--color-selected); color: var(--color-primary-pressed); }
