@@ -720,13 +720,14 @@ function messageHtml(m, isLastOwn) {
   const sent = m.id && !m.status?.match(/sending|failed/);
   const live = sent && !m.deleted_at;
   const tools = sent ? `<div class="msg__tools">
+      ${live ? `<button class="msg__tool" type="button" data-react-pick="${esc(m.id)}" aria-label="React" title="React" aria-expanded="false">${icon('smile')}</button>` : ''}
       ${live ? `<button class="msg__tool" type="button" data-reply="${esc(m.id)}" aria-label="Reply" title="Reply">${icon('reply')}</button>` : ''}
       ${live && m.kind === 'text' ? `<button class="msg__tool" type="button" data-copy="${esc(m.id)}" aria-label="Copy text" title="Copy">${icon('copy')}</button>` : ''}
       ${canEdit(m) ? `<button class="msg__tool" type="button" data-edit="${esc(m.id)}" aria-label="Edit message" title="Edit (for 5 minutes)">${icon('edit')}</button>` : ''}
       <button class="msg__tool msg__tool--danger" type="button" data-delete="${esc(m.id)}" aria-label="Delete message" title="Delete">${icon('trash')}</button>
     </div>` : '';
   const quote = m.reply_to_id && !m.deleted_at ? quoteHtml(m.reply_to_id) : '';
-  return `<div class="${classes.join(' ')}" data-id="${esc(m.id || '')}">${quote}<div class="msg__row">${content}${tools}</div><div class="msg__meta">${meta}</div></div>`;
+  return `<div class="${classes.join(' ')}" data-id="${esc(m.id || '')}">${quote}<div class="msg__row">${content}${tools}</div>${m.deleted_at ? '' : reactionsHtml(m)}<div class="msg__meta">${meta}</div></div>`;
 }
 
 /** Short text for a quoted message: what you'd recognise it by. */
@@ -1204,6 +1205,16 @@ function bindMain() {
       copyMessage(copy.dataset.copy);
       return;
     }
+    const pick = event.target.closest('[data-react-pick]');
+    if (pick) {
+      toggleReactionPicker(pick.dataset.reactPick);
+      return;
+    }
+    const react = event.target.closest('[data-react]');
+    if (react) {
+      toggleReaction(react.dataset.react, react.dataset.reaction);
+      return;
+    }
     const remove = event.target.closest('[data-delete]');
     if (remove) {
       deleteMessage(remove.dataset.delete);
@@ -1269,8 +1280,15 @@ function bindMain() {
     const picker = document.getElementById('bg-picker');
     if (picker && !picker.hidden && !event.target.closest('#bg-picker, [data-action="background"]')) toggleBackgroundPicker(false);
     if (!event.target.closest('.msg--tools-open')) closeMessageTools();
+    if (!event.target.closest('.react-pop, [data-react-pick]')) closeReactionPicker();
   });
   bindMessageGestures();
+  main.addEventListener('dblclick', (event) => {
+    const el = event.target.closest('#msg-list .msg[data-id]:not(.msg--deleted)');
+    if (!el || event.target.closest('button, a, audio, .msg__tools')) return;
+    window.getSelection()?.removeAllRanges();
+    toggleReaction(el.dataset.id, '❤️');
+  });
   main.addEventListener('change', (event) => {
     if (event.target.id === 'bg-all') chooseChatBackground(currentChatBackground(), event.target.checked);
   });
@@ -1284,6 +1302,8 @@ function bindMain() {
     } else if (picker && !picker.hidden) {
       toggleBackgroundPicker(false);
       document.querySelector('[data-action="background"]')?.focus();
+    } else if (document.querySelector('.react-pop')) {
+      closeReactionPicker();
     } else if (state.active?.editing) {
       cancelEdit();
     } else if (state.active?.replyTo) {
@@ -1310,6 +1330,74 @@ function toggleEmoji(force) {
   pop.hidden = !open;
   button?.setAttribute('aria-expanded', String(open));
   if (open) pop.querySelector('button')?.focus();
+}
+
+/* ---------- reactions ---------- */
+
+function reactionsHtml(m) {
+  const counts = new Map();
+  for (const emoji of Object.values(m.reactions || {})) counts.set(emoji, (counts.get(emoji) || 0) + 1);
+  if (!counts.size) return '';
+  const mine = m.reactions?.[state.me.id];
+  const chips = api.REACTIONS.filter((e) => counts.has(e)).map((emoji) => {
+    const count = counts.get(emoji);
+    const isMine = emoji === mine;
+    const label = `${emoji} ${count}${isMine ? ', including you. Tap to remove yours' : '. Tap to react with this'}`;
+    return `<button class="reaction${isMine ? ' is-mine' : ''}" type="button" data-react="${esc(m.id)}" data-reaction="${emoji}"
+      aria-label="${esc(label)}" aria-pressed="${isMine}">${emoji}${count > 1 ? `<span>${count}</span>` : ''}</button>`;
+  }).join('');
+  return `<div class="msg__reactions">${chips}</div>`;
+}
+
+function toggleReactionPicker(id) {
+  const open = document.querySelector('.react-pop');
+  const wasForThis = open?.dataset.for === id;
+  closeReactionPicker();
+  if (wasForThis) return;
+  const el = document.querySelector(`#msg-list .msg[data-id="${CSS.escape(id)}"]`);
+  const message = state.active?.messages.find((m) => m.id === id);
+  if (!el || !message || message.deleted_at) return;
+  const mine = message.reactions?.[state.me.id];
+  el.insertAdjacentHTML('afterbegin', `<div class="react-pop" role="group" aria-label="React to this message" data-for="${esc(id)}">
+    ${api.REACTIONS.map((e) => `<button type="button" data-react="${esc(id)}" data-reaction="${e}" aria-pressed="${e === mine}" aria-label="React with ${e}">${e}</button>`).join('')}
+  </div>`);
+  // near the top of the chat the picker opens below the message instead
+  const pop = el.querySelector('.react-pop');
+  const scroller = document.getElementById('chat-messages');
+  if (pop.getBoundingClientRect().top < scroller.getBoundingClientRect().top + 4) pop.classList.add('react-pop--below');
+  el.querySelector(`[data-react-pick="${CSS.escape(id)}"]`)?.setAttribute('aria-expanded', 'true');
+  el.querySelector('.react-pop button')?.focus({ preventScroll: true });
+}
+
+function closeReactionPicker() {
+  document.querySelectorAll('.react-pop').forEach((pop) => pop.remove());
+  document.querySelectorAll('[data-react-pick][aria-expanded="true"]').forEach((b) => b.setAttribute('aria-expanded', 'false'));
+}
+
+/** Tapping your own reaction removes it; any other emoji becomes your reaction. */
+async function toggleReaction(id, emoji) {
+  const a = state.active;
+  const message = a?.messages.find((m) => m.id === id);
+  if (!message || message.deleted_at || !message.id || message.status?.match(/sending|failed/)) return;
+  closeReactionPicker();
+  closeMessageTools();
+  const previous = message.reactions?.[state.me.id] ?? null;
+  const next = previous === emoji ? null : emoji;
+  const set = (value) => {
+    message.reactions = { ...message.reactions };
+    if (value) message.reactions[state.me.id] = value;
+    else delete message.reactions[state.me.id];
+  };
+  set(next);
+  renderMessages({ keepOffset: true });
+  try {
+    await api.reactToMessage(id, next);
+  } catch (error) {
+    if (state.active !== a) return;
+    set(previous);
+    renderMessages({ keepOffset: true });
+    toast(friendlyError(error), { type: 'error' });
+  }
 }
 
 /* ---------- replies and copying ---------- */
@@ -1587,8 +1675,18 @@ function bindMessageGestures() {
     }
   });
 
+  let lastTap = { id: null, at: 0 };
   const finish = () => {
     if (drag?.mode === 'swipe' && drag.dx >= SWIPE_REPLY_PX) startReply(drag.id);
+    if (drag && !drag.mode && !drag.el.classList.contains('msg--deleted')) {
+      const now = Date.now();
+      if (lastTap.id === drag.id && now - lastTap.at < 320) {
+        toggleReaction(drag.id, '❤️');
+        lastTap = { id: null, at: 0 };
+      } else {
+        lastTap = { id: drag.id, at: now };
+      }
+    }
     reset();
   };
   main.addEventListener('pointerup', finish);
@@ -1880,6 +1978,14 @@ function subscribeRealtime() {
         renderMessages();
       }
       refreshListSoon();
+    },
+    onReaction(row) {
+      const message = state.active?.id === row.conversation_id && state.active.messages.find((m) => m.id === row.message_id);
+      if (!message) return;
+      message.reactions = { ...message.reactions };
+      if (row.emoji) message.reactions[row.user_id] = row.emoji;
+      else delete message.reactions[row.user_id];
+      renderMessages({ keepOffset: !state.active.stickToBottom });
     },
     onParticipant(row) {
       const a = state.active;
