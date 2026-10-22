@@ -1,7 +1,7 @@
 // Chat page: conversation list, open conversation, random text matching.
 import { initApp, toast } from './app.js';
 import * as api from './api.js';
-import { icon, esc, avatarHtml, timeAgo, setLoading, friendlyError } from './ui.js';
+import { icon, esc, avatarHtml, timeAgo, setLoading, friendlyError, radarHtml } from './ui.js';
 import { confirmAction, chooseAction, openReportDialog } from './dialogs.js';
 import { askAboutYou } from './quick-start.js';
 import { randomQuestion } from './icebreakers.js';
@@ -1903,7 +1903,7 @@ function startMatching({ push = false } = {}) {
     ? `<ul class="chip-list" role="list" aria-label="Matching on">${interests.map((s) => `<li class="chip chip--static">${esc(state.labels[s] || s)}</li>`).join('')}</ul>`
     : '<p>Matching with anyone.</p>';
   main.innerHTML = `<div class="chat-matching" aria-live="polite">
-    <div class="heart-beat" aria-hidden="true"><span class="heart-beat__ring"></span><span class="heart-beat__ring"></span><span class="heart-beat__heart">${icon('chat')}</span></div>
+    ${radarHtml('chat')}
     <h2>Finding someone for you…</h2>
     <p class="match-timer" id="match-timer">0:00</p>
     ${chips}

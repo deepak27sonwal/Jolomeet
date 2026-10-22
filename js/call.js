@@ -4,7 +4,7 @@
 import { initApp, toast } from './app.js';
 import * as api from './api.js';
 import { CallPeer, watchAudioLevel } from './rtc.js';
-import { icon, esc, avatarHtml, friendlyError } from './ui.js';
+import { icon, esc, avatarHtml, friendlyError, radarHtml } from './ui.js';
 import { confirmAction, openReportDialog } from './dialogs.js';
 import { askAboutYou } from './quick-start.js';
 import { questionFor } from './icebreakers.js';
@@ -160,7 +160,7 @@ function renderSearching() {
   if (VIDEO) {
     setScreen('searching', `
       <div class="call-overlay call-overlay--center">
-        <div class="heart-beat heart-beat--sm" aria-hidden="true"><span class="heart-beat__ring"></span><span class="heart-beat__ring"></span><span class="heart-beat__heart">${icon('video')}</span></div>
+        ${radarHtml('video', { small: true })}
         <h1>${COPY.searching}</h1>
         <p class="call-timer" id="search-timer">0:00</p>
         ${chipsHtml(interests())}
@@ -172,7 +172,7 @@ function renderSearching() {
     return;
   }
   setScreen('searching', `
-    <div class="heart-beat" aria-hidden="true"><span class="heart-beat__ring"></span><span class="heart-beat__ring"></span><span class="heart-beat__heart">${icon('mic')}</span></div>
+    ${radarHtml('mic')}
     <h1>${COPY.searching}</h1>
     <p class="call-timer" id="search-timer">0:00</p>
     ${chipsHtml(interests())}
