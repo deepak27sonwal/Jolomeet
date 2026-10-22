@@ -374,6 +374,20 @@ const MESSAGE_FIELDS = 'id, conversation_id, sender_id, client_id, kind, body, a
  * Messages you hid ("Delete for me") are left out, so a page can be short:
  * use `hasMore` and `cursor` (the oldest message fetched, hidden or not) to page.
  */
+/**
+ * Messages sent at or after `since` (oldest first). Used to catch up on anything
+ * the live connection missed, e.g. while a phone was locked or switching networks.
+ */
+export async function getMessagesSince(conversationId, since, limit = 200) {
+  const { data, error } = await supabase.from('messages').select(MESSAGE_FIELDS)
+    .eq('conversation_id', conversationId)
+    .gte('created_at', since)
+    .order('created_at', { ascending: true })
+    .limit(limit);
+  if (error) throw error;
+  return data;
+}
+
 export async function getMessages(conversationId, { before = null, limit = 40 } = {}) {
   let query = supabase.from('messages').select(MESSAGE_FIELDS)
     .eq('conversation_id', conversationId)
@@ -584,8 +598,9 @@ export async function joinConversationChannel(conversationId, { onTyping, onSign
     .subscribe();
   return {
     // only over the open socket; before it joins, send() would fall back to an HTTP request
-    sendTyping: (userId) => {
-      if (channel.state === 'joined') channel.send({ type: 'broadcast', event: 'typing', payload: { user_id: userId } });
+    // typing: false says the person cleared their message box, so the dots can go at once
+    sendTyping: (userId, typing = true) => {
+      if (channel.state === 'joined') channel.send({ type: 'broadcast', event: 'typing', payload: { user_id: userId, typing } });
     },
     sendSignal: (payload) => channel.send({ type: 'broadcast', event: 'signal', payload }),
     leave: () => supabase.removeChannel(channel),
