@@ -6,6 +6,30 @@ export function icon(name, cls = 'icon') {
   return `<svg class="${cls}" aria-hidden="true"><use href="${SPRITE}#${name}"/></svg>`;
 }
 
+// Blip positions on the matching radar (percent of its size). Each one pings as
+// the beam passes it: the beam starts at 12 o'clock and turns once every RADAR_TURN_S.
+const RADAR_BLIPS = [[72, 24], [24, 34], [80, 66], [36, 78], [58, 12]];
+const RADAR_TURN_S = 4; // keep in step with the radar-spin animation in components.css
+
+/**
+ * The "looking for someone" radar: rings, a sweeping beam and pinging person
+ * icons around a beating heart with `iconName` inside. Decorative only; the
+ * blips are not real people. Styles: .radar in components.css.
+ */
+export function radarHtml(iconName, { small = false } = {}) {
+  const blips = RADAR_BLIPS.map(([x, y]) => {
+    const angle = (Math.atan2(x - 50, 50 - y) * 180 / Math.PI + 360) % 360; // clockwise from 12 o'clock
+    const delay = (angle / 360 * RADAR_TURN_S).toFixed(2);
+    return `<span class="radar__blip" style="--x:${x}%;--y:${y}%;--d:${delay}s">${icon('user')}</span>`;
+  }).join('');
+  return `<div class="radar${small ? ' radar--sm' : ''}" aria-hidden="true">
+    <span class="radar__ring"></span><span class="radar__ring"></span><span class="radar__ring"></span>
+    <span class="radar__sweep"></span>
+    ${blips}
+    <span class="radar__core heart-beat__heart">${icon(iconName)}</span>
+  </div>`;
+}
+
 /** Escapes text for safe use inside HTML strings. Use for every user-provided value. */
 export function esc(value) {
   return String(value ?? '').replace(/[&<>"']/g, (c) => ({
