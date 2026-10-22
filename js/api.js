@@ -341,13 +341,24 @@ export async function getMessages(conversationId, { before = null, limit = 40 } 
   const { data, error } = await query;
   if (error) throw error;
   let hidden = new Set();
+  const reactions = new Map(); // message id -> { userId: emoji }
   if (data.length) {
-    const result = await supabase.from('hidden_messages').select('message_id').in('message_id', data.map((m) => m.id));
-    if (result.error) throw result.error;
-    hidden = new Set(result.data.map((row) => row.message_id));
+    const ids = data.map((m) => m.id);
+    const [hiddenRows, reactionRows] = await Promise.all([
+      supabase.from('hidden_messages').select('message_id').in('message_id', ids),
+      supabase.from('message_reactions').select('message_id, user_id, emoji').in('message_id', ids).not('emoji', 'is', null),
+    ]);
+    if (hiddenRows.error) throw hiddenRows.error;
+    if (reactionRows.error) throw reactionRows.error;
+    hidden = new Set(hiddenRows.data.map((row) => row.message_id));
+    for (const row of reactionRows.data) {
+      if (!reactions.has(row.message_id)) reactions.set(row.message_id, {});
+      reactions.get(row.message_id)[row.user_id] = row.emoji;
+    }
   }
   return {
-    messages: data.filter((m) => !hidden.has(m.id)).reverse(),
+    messages: data.filter((m) => !hidden.has(m.id)).reverse()
+      .map((m) => ({ ...m, reactions: reactions.get(m.id) || {} })),
     hidden,
     hasMore: data.length === limit,
     cursor: data.length ? data[data.length - 1].created_at : before,
@@ -370,6 +381,15 @@ export async function sendMessage({ conversationId, clientId, body, kind = 'text
     .single();
   if (error) throw error;
   return data;
+}
+
+/** The reactions people can add to a message (the database accepts only these). */
+export const REACTIONS = ['❤️', '😂', '😮', '😢', '👍', '🔥'];
+
+/** Sets your reaction to a message; null removes it. One reaction per person per message. */
+export async function reactToMessage(messageId, emoji) {
+  const { error } = await supabase.rpc('react_to_message', { p_message: messageId, p_emoji: emoji ?? null });
+  if (error) throw error;
 }
 
 /** Changes the text of your own text message. The database allows this for 5 minutes after sending. */
@@ -497,6 +517,8 @@ export async function subscribeToInbox(userId, handlers) {
   return supabase.channel(`inbox-${userId}`)
     .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, (p) => handlers.onMessage?.(p.new))
     .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'messages' }, (p) => handlers.onMessageUpdate?.(p.new))
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'message_reactions' }, (p) => handlers.onReaction?.(p.new))
+    .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'message_reactions' }, (p) => handlers.onReaction?.(p.new))
     .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'conversation_participants' }, (p) => handlers.onParticipant?.(p.new))
     .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'match_sessions' }, (p) => handlers.onSession?.(p.new))
     .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'match_session_participants', filter: `user_id=eq.${userId}` },
