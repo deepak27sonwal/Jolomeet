@@ -661,7 +661,13 @@ function renderMessages({ keepOffset = false } = {}) {
   let html = '';
   if (!a.hasMore) html += `<p class="msg msg--system">${esc(introText(a))}</p>`;
   let lastDay = '';
+  // messages that weren't on screen at the last render pop in like a bubble
+  const fresh = a.shown && !keepOffset;
+  a.shown ??= new Set();
   for (const m of a.messages) {
+    const key = m.client_id || m.id;
+    if (fresh && !a.shown.has(key)) m.popAt = performance.now();
+    a.shown.add(key);
     const day = new Date(m.created_at).toDateString();
     if (day !== lastDay) {
       html += `<div class="chat-day"><span>${esc(dayLabel(m.created_at))}</span></div>`;
@@ -685,6 +691,8 @@ function introText(a) {
   return `This is the start of your conversation with ${a.partner.name}.`;
 }
 
+const POP_MS = 420; // css/chat.css bubble-pop
+
 function messageHtml(m, isLastOwn) {
   const out = m.sender_id === state.me.id;
   if (m.kind === 'system') return `<p class="msg msg--system">${esc(m.body)}</p>`;
@@ -692,6 +700,9 @@ function messageHtml(m, isLastOwn) {
   if (m.deleted_at) classes.push('msg--deleted');
   if (m.status === 'sending') classes.push('msg--sending');
   if (m.status === 'failed') classes.push('msg--failed');
+  // the list is redrawn when a send is confirmed: carry on the pop where it was
+  const popped = m.popAt ? Math.round(performance.now() - m.popAt) : Infinity;
+  if (popped < POP_MS) classes.push('msg--pop');
   if (m.kind === 'text' && String(m.body).startsWith('🎲 ')) classes.push('msg--icebreaker');
 
   let content;
@@ -730,7 +741,8 @@ function messageHtml(m, isLastOwn) {
       <button class="msg__tool msg__tool--danger" type="button" data-delete="${esc(m.id)}" aria-label="Delete message" title="Delete">${icon('trash')}</button>
     </div>` : '';
   const quote = m.reply_to_id && !m.deleted_at ? quoteHtml(m.reply_to_id) : '';
-  return `<div class="${classes.join(' ')}" data-id="${esc(m.id || '')}">${quote}<div class="msg__row">${content}${tools}</div>${m.deleted_at ? '' : reactionsHtml(m)}<div class="msg__meta">${meta}</div></div>`;
+  const pop = popped < POP_MS ? ` style="--pop-delay:-${popped}ms"` : '';
+  return `<div class="${classes.join(' ')}" data-id="${esc(m.id || '')}"${pop}>${quote}<div class="msg__row">${content}${tools}</div>${m.deleted_at ? '' : reactionsHtml(m)}<div class="msg__meta">${meta}</div></div>`;
 }
 
 /** Short text for a quoted message: what you'd recognise it by. */

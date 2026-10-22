@@ -308,31 +308,80 @@
 .msg--out { align-items: flex-end; margin-left: auto; }
 
 .msg__bubble {
-  padding: var(--space-2) var(--space-3);
-  border-radius: 18px;
+  position: relative;
+  padding: var(--space-2) 14px;
+  border: 1px solid rgba(255, 255, 255, 0.75);
+  border-radius: 20px;
+  color: #3A1530;
   font-size: 0.9375rem;
   line-height: 1.45;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
 
-.msg--in .msg__bubble {
-  border: 1px solid var(--color-border);
-  border-bottom-left-radius: 6px;
-  background: var(--color-bg);
-  color: var(--color-text);
+/* soft pink bubbles with a glossy shine, a soft glow and a little round tail */
+.msg--in .msg__bubble,
+.msg--out .msg__bubble {
+  background:
+    radial-gradient(120% 70% at 30% 0%, rgba(255, 255, 255, 0.75) 0%, rgba(255, 255, 255, 0) 55%),
+    linear-gradient(160deg, var(--bubble-top) 0%, var(--bubble-bottom) 100%);
+  box-shadow:
+    inset 0 1px 1px rgba(255, 255, 255, 0.9),
+    inset 0 -2px 6px rgba(233, 30, 120, 0.08),
+    0 6px 16px -8px rgba(233, 30, 120, 0.45);
 }
 
-.msg--out .msg__bubble {
-  border-bottom-right-radius: 6px;
-  background: var(--gradient-primary);
-  color: var(--color-on-primary);
+.msg--in { --bubble-top: #FFF4F9; --bubble-bottom: #FFE3F0; --bubble-tail: #FFE5F1; }
+.msg--out { --bubble-top: #FFDDEC; --bubble-bottom: #FFBCDA; --bubble-tail: #FFC0DC; }
+
+.msg--in .msg__bubble { border-bottom-left-radius: 8px; }
+.msg--out .msg__bubble { border-bottom-right-radius: 8px; }
+
+/* the tail: a small bubble on the corner and a tiny one trailing off it */
+.msg--in .msg__bubble::after,
+.msg--out .msg__bubble::after,
+.msg--in .msg__bubble::before,
+.msg--out .msg__bubble::before {
+  content: "";
+  position: absolute;
+  border-radius: 50%;
+  background: var(--bubble-tail);
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.9), 0 2px 5px -2px rgba(233, 30, 120, 0.45);
+  pointer-events: none;
+}
+
+.msg--in .msg__bubble::after,
+.msg--out .msg__bubble::after { bottom: -3px; width: 11px; height: 11px; }
+
+.msg--in .msg__bubble::before,
+.msg--out .msg__bubble::before { bottom: -7px; width: 5px; height: 5px; }
+
+.msg--in .msg__bubble::after { left: -3px; }
+.msg--in .msg__bubble::before { left: -9px; }
+.msg--out .msg__bubble::after { right: -3px; }
+.msg--out .msg__bubble::before { right: -9px; }
+.msg--deleted .msg__bubble::after,
+.msg--deleted .msg__bubble::before { display: none; }
+
+/* a new message pops in like a bubble */
+@media (prefers-reduced-motion: no-preference) {
+  .msg--pop.msg--in .msg__bubble,
+  .msg--pop.msg--in .msg__image { transform-origin: bottom left; animation: bubble-pop 420ms cubic-bezier(0.34, 1.56, 0.64, 1) var(--pop-delay, 0ms) both; }
+  .msg--pop.msg--out .msg__bubble,
+  .msg--pop.msg--out .msg__image { transform-origin: bottom right; animation: bubble-pop 420ms cubic-bezier(0.34, 1.56, 0.64, 1) var(--pop-delay, 0ms) both; }
+}
+
+@keyframes bubble-pop {
+  0% { opacity: 0; transform: scale(0.4) translateY(12px); }
+  60% { opacity: 1; }
+  100% { transform: none; }
 }
 
 .msg--deleted .msg__bubble {
-  border: 1px dashed var(--color-border);
-  background: transparent;
-  color: var(--color-text-muted);
+  border: 1px dashed #F5B8D3;
+  background: rgba(255, 240, 247, 0.6);
+  box-shadow: none;
+  color: #9A4A72;
   font-style: italic;
 }
 
@@ -675,14 +724,13 @@
 
 /* ---------- Voice notes, icebreakers, stay in touch ---------- */
 .msg__bubble--voice { padding: var(--space-2) var(--space-3); }
-.msg--in .voice__play { background: var(--color-accent-soft); color: var(--color-nav); }
-.msg--in .voice__track, .msg--in .voice__progress { color: var(--color-accent); }
+.msg .voice__play { background: var(--gradient-primary); color: #FFFFFF; }
+.msg .voice__track, .msg .voice__progress { color: var(--color-primary); }
 
 /* a question sent with the dice button */
 .msg--icebreaker .msg__bubble {
   border: 1.5px dashed var(--color-secondary);
-  background: var(--color-bg-blush);
-  color: var(--color-heading);
+  color: #6B1747;
   font-weight: var(--weight-semibold);
 }
 
