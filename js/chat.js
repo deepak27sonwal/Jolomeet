@@ -4,6 +4,7 @@ import * as api from './api.js';
 import { icon, esc, avatarHtml, timeAgo, setLoading, friendlyError, radarHtml } from './ui.js';
 import { confirmAction, chooseAction, openReportDialog } from './dialogs.js';
 import { notifyIncoming, setViewingConversation } from './notify.js';
+import { factsHtml, mountFacts } from './facts.js';
 import { askAboutYou } from './quick-start.js';
 import { randomQuestion } from './icebreakers.js';
 import { canRecordVoice, startRecording, voicePlayerHtml, hydrateVoicePlayers, stopVoicePlayback, formatSeconds, MAX_VOICE_SECONDS } from './voice-note.js';
@@ -1997,8 +1998,10 @@ function startMatching({ push = false } = {}) {
     <h2>Finding someone for you…</h2>
     <p class="match-timer" id="match-timer">0:00</p>
     ${chips}
+    ${factsHtml()}
     <button class="btn btn--secondary" type="button" data-action="cancel-match">Cancel</button>
   </div>`;
+  mountFacts(main);
   main.querySelector('.chat-matching').insertAdjacentHTML('afterbegin',
     `<button class="icon-button chat-back chat-setup__back" type="button" data-action="cancel-match" aria-label="Stop matching">${icon('arrow-left')}</button>`);
 
