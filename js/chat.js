@@ -3,6 +3,7 @@ import { initApp, toast } from './app.js';
 import * as api from './api.js';
 import { icon, esc, avatarHtml, timeAgo, setLoading, friendlyError, radarHtml } from './ui.js';
 import { confirmAction, chooseAction, openReportDialog } from './dialogs.js';
+import { notifyIncoming, setViewingConversation } from './notify.js';
 import { askAboutYou } from './quick-start.js';
 import { randomQuestion } from './icebreakers.js';
 import { canRecordVoice, startRecording, voicePlayerHtml, hydrateVoicePlayers, stopVoicePlayback, formatSeconds, MAX_VOICE_SECONDS } from './voice-note.js';
@@ -355,6 +356,7 @@ async function openConversation(id, { push = false, intro = null } = {}) {
   if (seq !== state.openSeq) return;
 
   const name = profile?.display_name || row?.partner_name || 'JoloMeet user';
+  setViewingConversation(id);
   state.active = {
     id,
     kind: meta.conversation.kind,
@@ -410,6 +412,7 @@ function leaveActive() {
   stopVoicePlayback();
   clearTimeout(active.typingTimer);
   state.active = null;
+  setViewingConversation(null);
 }
 
 function closeConversation({ push = false } = {}) {
@@ -1971,6 +1974,7 @@ function subscribeRealtime() {
     onMessage(message) {
       onIncomingMessage(message);
       refreshListSoon();
+      notifyIncoming(message, state.me.id);
     },
     onMessageUpdate(message) {
       if (state.active?.id === message.conversation_id) {

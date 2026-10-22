@@ -1,8 +1,10 @@
 // Shared bootstrapping and small utilities used by every page.
 import { initNavigation } from './navigation.js';
-import { getSession, signOut, touchPresence } from './api.js';
+import { getSession, signOut, touchPresence, subscribeToNewMessages } from './api.js';
 import { initReveal, pauseOffscreenEffects } from './motion.js';
 import { confirmAction } from './dialogs.js';
+import { notifyIncoming } from './notify.js';
+import { icon } from './ui.js';
 
 export function initApp() {
   initNavigation();
@@ -29,6 +31,7 @@ async function initAuthHeader() {
   }
   if (!session) return;
   startPresenceHeartbeat();
+  startMessageAlerts(session.user.id);
 
   const guest = session.user.is_anonymous;
   const primary = guest
@@ -49,9 +52,32 @@ async function initAuthHeader() {
   };
 
   const desktop = document.querySelector('.site-header__actions');
-  desktop?.querySelectorAll('.btn').forEach((el) => el.remove());
-  desktop?.append(...build());
-  document.querySelector('.mobile-menu__actions')?.replaceChildren(...build('btn--lg btn--block'));
+  desktop?.querySelectorAll('.btn, .settings-link').forEach((el) => el.remove());
+  const gear = document.createElement('a');
+  gear.className = 'icon-button settings-link';
+  gear.href = 'settings.html';
+  gear.setAttribute('aria-label', 'Settings');
+  gear.title = 'Settings';
+  gear.dataset.nav = 'settings';
+  gear.innerHTML = icon('settings');
+  desktop?.append(gear, ...build());
+  const menu = document.querySelector('.mobile-menu__actions');
+  if (menu && !document.querySelector('.mobile-menu__link[href="settings.html"]')) {
+    menu.insertAdjacentHTML('beforebegin',
+      `<a class="mobile-menu__link" href="settings.html" data-nav="settings">${icon('settings')}Settings</a>`);
+  }
+  menu?.replaceChildren(...build('btn--lg btn--block'));
+  if (document.body.dataset.page === 'settings') {
+    document.querySelectorAll('[data-nav="settings"]').forEach((el) => el.setAttribute('aria-current', 'page'));
+  }
+}
+
+/** New-message alerts on pages that don't already listen (chat and call pages have their own). */
+let alertsStarted = false;
+function startMessageAlerts(userId) {
+  if (alertsStarted || ['chat', 'audio', 'video'].includes(document.body.dataset.page)) return;
+  alertsStarted = true;
+  subscribeToNewMessages(userId, (message) => notifyIncoming(message, userId)).catch(() => {});
 }
 
 const HEARTBEAT_MS = 30_000;

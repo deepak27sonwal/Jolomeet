@@ -5,6 +5,7 @@ import { initApp, toast } from './app.js';
 import * as api from './api.js';
 import { CallPeer, watchAudioLevel } from './rtc.js';
 import { icon, esc, avatarHtml, friendlyError, radarHtml } from './ui.js';
+import { notifyIncoming } from './notify.js';
 import { confirmAction, openReportDialog } from './dialogs.js';
 import { askAboutYou } from './quick-start.js';
 import { questionFor } from './icebreakers.js';
@@ -105,7 +106,10 @@ async function init() {
   window.addEventListener('pagehide', leaveEverything);
   api.subscribeToInbox(state.me.id, {
     onMatched: () => { if (state.search) pollMatch(); },
-    onMessage: (message) => onCallMessage(message),
+    onMessage: (message) => {
+      if (message.conversation_id === state.call?.conversationId) onCallMessage(message);
+      else notifyIncoming(message, state.me.id); // another chat: chime and pop-up per your settings
+    },
     onSession: (session) => {
       if (state.call?.sessionId === session.id && session.status === 'ended' && session.ended_by !== state.me.id) {
         endCall('partner');

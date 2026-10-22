@@ -148,6 +148,48 @@ export const IMAGE_RULES = {
   covers: { maxBytes: 5 * 1024 * 1024, types: ['image/jpeg', 'image/png', 'image/webp'] },
 };
 
+/* ---------- Settings and notifications ---------- */
+
+const SETTINGS_FIELDS = 'notify_messages, notify_connection_requests, notify_matches, sound_enabled';
+
+/** Your notification settings (every account has a row, created at sign-up). */
+export async function getMySettings() {
+  const { data, error } = await supabase.from('user_settings').select(SETTINGS_FIELDS).maybeSingle();
+  if (error) throw error;
+  return data;
+}
+
+/** fields: any of notify_messages, notify_connection_requests, notify_matches, sound_enabled */
+export async function updateMySettings(userId, fields) {
+  const { data, error } = await supabase.from('user_settings').update(fields).eq('user_id', userId)
+    .select(SETTINGS_FIELDS).single();
+  if (error) throw error;
+  return data;
+}
+
+/** Name and photo to show in a message notification. */
+export async function getSenderSummary(userId) {
+  const { data, error } = await supabase.from('profiles').select('display_name, avatar_path').eq('id', userId).maybeSingle();
+  if (error) throw error;
+  return { name: data?.display_name || 'Someone', avatarUrl: publicImageUrl('avatars', data?.avatar_path) };
+}
+
+/** Whether you muted a conversation (its messages then don't notify). */
+export async function isConversationMuted(conversationId, userId) {
+  const { data, error } = await supabase.from('conversation_participants').select('is_muted')
+    .eq('conversation_id', conversationId).eq('user_id', userId).maybeSingle();
+  if (error) throw error;
+  return Boolean(data?.is_muted);
+}
+
+/** New messages in any of your chats, for notifications on pages without the chat list. */
+export async function subscribeToNewMessages(userId, onMessage) {
+  await authorizeRealtime();
+  return supabase.channel(`notify-${userId}`)
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, (p) => onMessage(p.new))
+    .subscribe();
+}
+
 /** Public profile as the viewer may see it, or null if hidden/blocked/missing. */
 export async function getProfile(userId) {
   const { data, error } = await supabase.rpc('get_profile', { p_user_id: userId });
