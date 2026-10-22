@@ -584,8 +584,9 @@ export async function joinConversationChannel(conversationId, { onTyping, onSign
     .subscribe();
   return {
     // only over the open socket; before it joins, send() would fall back to an HTTP request
-    sendTyping: (userId) => {
-      if (channel.state === 'joined') channel.send({ type: 'broadcast', event: 'typing', payload: { user_id: userId } });
+    // typing: false says the person cleared their message box, so the dots can go at once
+    sendTyping: (userId, typing = true) => {
+      if (channel.state === 'joined') channel.send({ type: 'broadcast', event: 'typing', payload: { user_id: userId, typing } });
     },
     sendSignal: (payload) => channel.send({ type: 'broadcast', event: 'signal', payload }),
     leave: () => supabase.removeChannel(channel),

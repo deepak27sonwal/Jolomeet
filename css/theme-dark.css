@@ -69,7 +69,7 @@
 [data-theme="dark"] [data-chat-bg="default"] { background-color: #120B22; }
 [data-theme="dark"] .bg-swatch__name { background: rgba(26, 18, 48, 0.86); }
 /* the light chat backgrounds keep dark helper text so it stays readable */
-[data-theme="dark"] .chat-messages:not([data-chat-bg="default"]):not([data-chat-bg="night"]) :is(.msg__meta, .msg--system) { color: #5E5574; }
+[data-theme="dark"] .chat-messages:not([data-chat-bg="default"]):not([data-chat-bg="night"]) :is(.msg__meta, .msg--system, .typing__label) { color: #5E5574; }
 
 /* calls */
 [data-theme="dark"] .call-stage { background: rgba(26, 18, 48, 0.92); }

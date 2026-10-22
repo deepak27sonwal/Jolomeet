@@ -472,7 +472,10 @@ function renderConversation() {
     <div class="chat-messages" id="chat-messages">
       <div class="chat-older" id="chat-older"></div>
       <div id="msg-list" role="log" aria-label="Messages" aria-live="polite"></div>
-      <div class="typing" id="typing" hidden aria-label="${esc(a.partner.name)} is typing"><span></span><span></span><span></span></div>
+      <div class="typing" id="typing" hidden>
+        <span class="typing__bubble" aria-hidden="true"><i></i><i></i><i></i></span>
+        <span class="typing__label">${esc(a.partner.name)} is typing</span>
+      </div>
     </div>
     <button class="btn btn--primary btn--sm chat-jump" type="button" data-action="jump" hidden>New messages ↓</button>
     <div id="chat-composer-slot"></div>`;
@@ -619,7 +622,8 @@ function renderComposer() {
   input.addEventListener('input', () => {
     autosize(input);
     updateSendButton();
-    sendTypingSignal();
+    if (input.value.trim()) sendTypingSignal();
+    else sendTypingStop();
   });
   updateSendButton();
   renderReplyBar();
@@ -908,6 +912,7 @@ function sendText() {
   input.value = '';
   autosize(input);
   updateSendButton();
+  if (state.active) state.active.lastTypingSent = 0; // the message itself ends the dots on their side
   input.focus();
   deliver({ client_id: crypto.randomUUID(), kind: 'text', body, reply_to_id: takeReply() });
 }
@@ -1185,10 +1190,18 @@ function sendTypingSignal() {
   a.typingChannel.sendTyping(state.me.id);
 }
 
+/** You emptied the message box: tell them straight away rather than letting the dots time out. */
+function sendTypingStop() {
+  const a = state.active;
+  if (!a?.typingChannel || Date.now() - a.lastTypingSent > TYPING_SHOW_MS) return;
+  a.lastTypingSent = 0;
+  a.typingChannel.sendTyping(state.me.id, false);
+}
+
 function onTyping(payload) {
   const a = state.active;
   if (!a || payload?.user_id !== a.partner.id) return;
-  a.typingUntil = Date.now() + TYPING_SHOW_MS;
+  a.typingUntil = payload.typing === false ? 0 : Date.now() + TYPING_SHOW_MS;
   renderHeadStatus();
   clearTimeout(a.typingTimer);
   a.typingTimer = setTimeout(renderHeadStatus, TYPING_SHOW_MS + 50);
