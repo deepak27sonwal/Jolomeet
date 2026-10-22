@@ -1115,7 +1115,7 @@ select.input {
   display: grid;
   gap: var(--space-1);
   width: min(100%, 380px);
-  min-height: 96px;
+  min-height: 114px; /* fits the longest fact, so the screen doesn't jump as they change */
   margin-top: var(--space-2);
   padding: var(--space-3) var(--space-4);
   border: 1px solid var(--color-border);
@@ -1163,6 +1163,10 @@ select.input {
 
 .call-screen.is-media .fact-card .fact-card__text { color: #FFFFFF; }
 .call-screen.is-media .fact-card .fact-card__tag { color: #FFC2DB; }
+
+@media (max-width: 360px) {
+  .fact-card { min-height: 136px; }
+}
 
 @media (prefers-reduced-motion: reduce) {
   .fact-card { transition: none; }
