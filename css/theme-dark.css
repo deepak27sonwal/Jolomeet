@@ -91,3 +91,6 @@
   .theme-toggle { margin-left: auto; }
   .theme-toggle + .menu-toggle { margin-left: var(--space-2); }
 }
+
+/* chat: the deleted-message outline on a dark background */
+[data-theme="dark"] .msg--deleted .msg__bubble { border-color: rgba(255, 179, 212, 0.45); background: rgba(255, 214, 232, 0.08); color: #E89BBF; }
