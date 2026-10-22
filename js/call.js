@@ -8,6 +8,7 @@ import { icon, esc, avatarHtml, friendlyError, radarHtml } from './ui.js';
 import { notifyIncoming } from './notify.js';
 import { confirmAction, openReportDialog } from './dialogs.js';
 import { askAboutYou } from './quick-start.js';
+import { factsHtml, mountFacts } from './facts.js';
 import { questionFor } from './icebreakers.js';
 import { interestPickerHtml, mountInterestPicker, savedInterests } from './interest-picker.js';
 
@@ -168,11 +169,13 @@ function renderSearching() {
         <h1>${COPY.searching}</h1>
         <p class="call-timer" id="search-timer">0:00</p>
         ${chipsHtml(interests())}
+        ${factsHtml()}
       </div>
       <div class="call-controls">
         ${muteButtonHtml()}${cameraButtonHtml()}${switchButtonHtml()}
         <button class="btn btn--secondary" type="button" data-action="cancel">Cancel</button>
       </div>`);
+    mountFacts(stage);
     return;
   }
   setScreen('searching', `
@@ -180,10 +183,12 @@ function renderSearching() {
     <h1>${COPY.searching}</h1>
     <p class="call-timer" id="search-timer">0:00</p>
     ${chipsHtml(interests())}
+    ${factsHtml()}
     <div class="call-actions">
       ${muteButtonHtml()}
       <button class="btn btn--secondary" type="button" data-action="cancel">Cancel</button>
     </div>`);
+  mountFacts(stage);
 }
 
 function renderConnecting() {
