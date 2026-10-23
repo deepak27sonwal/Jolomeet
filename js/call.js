@@ -57,6 +57,8 @@ const remoteVideo = document.getElementById('remote-video'); // video only
 const localVideo = document.getElementById('local-video');   // video only
 const selfTile = document.getElementById('self-tile');       // video only
 const remoteOff = document.getElementById('remote-off');     // video only
+const swapButton = document.getElementById('swap-view');     // video only
+let swapped = false;                                         // video only: your camera is the big one
 const remoteAudio = document.getElementById('remote-audio'); // audio only
 const chatPanel = document.getElementById('call-chat');      // video only
 const chatList = document.getElementById('call-chat-list');
@@ -103,6 +105,7 @@ async function init() {
     .catch(() => {});
 
   stage.addEventListener('click', onStageClick);
+  swapButton?.addEventListener('click', toggleSwap);
   if (chatPanel) bindCallChat();
   window.addEventListener('pagehide', leaveEverything);
   api.subscribeToInbox(state.me.id, {
@@ -135,6 +138,8 @@ function setScreen(name, html) {
     screen.dataset.screen = name;
     screen.classList.toggle('is-media', media);
     document.body.classList.toggle('in-call', media);
+    if (name !== 'live') swapped = false; // every call starts with the other person big
+    applySwap();
     updateRemoteOff();
   }
 }
@@ -649,6 +654,36 @@ function refreshControls() {
 function formatDuration(seconds) {
   const m = Math.floor(seconds / 60);
   return `${m}:${String(Math.floor(seconds % 60)).padStart(2, '0')}`;
+}
+
+/** Video: tap the small tile to swap which of the two videos is big, like WhatsApp. */
+function applySwap() {
+  screen.classList.toggle('is-swapped', swapped);
+  refreshSwapLabel();
+}
+
+function toggleSwap() {
+  if (!VIDEO || state.screen !== 'live') return;
+  swapped = !swapped;
+  if (!document.startViewTransition || document.visibilityState !== 'visible'
+    || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    applySwap();
+    return;
+  }
+  const root = document.documentElement;
+  screen.classList.add('is-swapping');
+  root.classList.add('is-swapping-tiles');
+  const transition = document.startViewTransition(applySwap);
+  setTimeout(applySwap, 300); // if the browser is slow to take its snapshot, don't leave the tap hanging
+  transition.finished.finally(() => {
+    screen.classList.remove('is-swapping');
+    root.classList.remove('is-swapping-tiles');
+  });
+}
+
+function refreshSwapLabel() {
+  if (!swapButton) return;
+  swapButton.setAttribute('aria-label', swapped ? `Show ${state.call?.name || 'them'} larger` : 'Show your camera larger');
 }
 
 /** Video: the other person's tile shows their picture while connecting or when their camera is off. */
