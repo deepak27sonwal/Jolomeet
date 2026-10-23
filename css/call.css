@@ -221,13 +221,6 @@
   border-radius: var(--radius-xl);
   background: #1E1636;
   box-shadow: var(--shadow-lg);
-
-  /* where the small picture-in-picture tile sits (your camera, or the other person after a swap) */
-  --pip-right: var(--space-4);
-  --pip-top: auto;
-  --pip-bottom: 104px;
-  --pip-width: clamp(110px, 20%, 220px);
-  --pip-ratio: 4 / 3;
 }
 
 .call-screen.is-media .call-remote {
@@ -262,12 +255,11 @@
 .call-screen.is-media .call-self {
   display: block;
   position: absolute;
-  top: var(--pip-top);
-  right: var(--pip-right);
-  bottom: var(--pip-bottom);
-  z-index: 4;
-  width: var(--pip-width);
-  aspect-ratio: var(--pip-ratio);
+  right: var(--space-4);
+  bottom: 104px;
+  z-index: 2;
+  width: clamp(110px, 20%, 220px);
+  aspect-ratio: 4 / 3;
   overflow: hidden;
   border: 2px solid rgba(255, 255, 255, 0.85);
   border-radius: var(--radius-lg);
@@ -282,77 +274,6 @@
   aspect-ratio: auto;
   border: 0;
   border-radius: 0;
-}
-
-/* swapped: tap the small tile and the two trade places (toggleSwap in js/call.js) */
-.call-screen.is-media.is-swapped .call-self {
-  inset: 0;
-  z-index: 1;
-  width: 100%;
-  height: 100%;
-  aspect-ratio: auto;
-  border: 0;
-  border-radius: 0;
-  box-shadow: none;
-}
-
-.call-screen.is-media.is-swapped .call-remote,
-.call-screen.is-media.is-swapped .call-remote-off {
-  inset: auto;
-  top: var(--pip-top);
-  right: var(--pip-right);
-  bottom: var(--pip-bottom);
-  z-index: 4;
-  width: var(--pip-width);
-  height: auto;
-  aspect-ratio: var(--pip-ratio);
-  overflow: hidden;
-  border: 2px solid rgba(255, 255, 255, 0.85);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-lg);
-}
-
-/* too small for the long message: the picture says it */
-.call-screen.is-swapped .call-remote-off { gap: 0; }
-.call-screen.is-swapped .call-remote-off p { display: none; }
-.call-screen.is-swapped .call-remote-off .call-avatar { --avatar-size: 44px; border-width: 2px; font-size: 1rem; }
-
-/* one invisible button over the small tile, whichever video is in it */
-.call-swap { display: none; }
-
-.call-screen.is-media[data-screen="live"] .call-swap {
-  display: block;
-  position: absolute;
-  top: var(--pip-top);
-  right: var(--pip-right);
-  bottom: var(--pip-bottom);
-  z-index: 5;
-  width: var(--pip-width);
-  aspect-ratio: var(--pip-ratio);
-  padding: 0;
-  border: 0;
-  border-radius: var(--radius-lg);
-  background: transparent;
-  cursor: pointer;
-  -webkit-tap-highlight-color: transparent;
-}
-
-.call-swap:focus-visible { outline: 3px solid var(--color-secondary); outline-offset: 3px; }
-
-/* the tiles glide into each other's place (browsers without view transitions just swap) */
-.call-screen.is-swapping .call-self { view-transition-name: tile-self; }
-.call-screen.is-swapping .call-remote { view-transition-name: tile-remote; }
-.call-screen.is-swapping .call-remote-off { view-transition-name: tile-remote-off; }
-
-/* the page-change slide in motion.css is for navigation, not for this */
-html.is-swapping-tiles::view-transition-old(root),
-html.is-swapping-tiles::view-transition-new(root) { animation: none; }
-
-::view-transition-group(tile-self),
-::view-transition-group(tile-remote),
-::view-transition-group(tile-remote-off) {
-  animation-duration: 280ms;
-  animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .call-self video { width: 100%; height: 100%; object-fit: cover; }
@@ -372,10 +293,6 @@ html.is-swapping-tiles::view-transition-new(root) { animation: none; }
 }
 
 .call-self.is-off .call-self__off { display: grid; }
-
-/* your camera is off and you made it the big picture */
-.call-screen.is-swapped .call-self__off { gap: var(--space-2); font-size: var(--text-sm); }
-.call-screen.is-swapped .call-self__off .icon { width: 40px; height: 40px; }
 .call-self.is-off video { visibility: hidden; }
 
 /* stage laid over the video */
@@ -530,21 +447,15 @@ html.is-swapping-tiles::view-transition-new(root) { animation: none; }
     padding: calc(var(--space-3) + env(safe-area-inset-top, 0px)) var(--space-3) calc(var(--space-4) + var(--safe-bottom));
   }
 
-  .call-screen.is-media {
-    --pip-top: calc(72px + env(safe-area-inset-top, 0px));
-    --pip-right: var(--space-3);
-    --pip-bottom: auto;
-    --pip-width: 96px;
-    --pip-ratio: 3 / 4;
+  .call-screen.is-media .call-self {
+    top: calc(72px + env(safe-area-inset-top, 0px));
+    right: var(--space-3);
+    bottom: auto;
+    width: 96px;
+    aspect-ratio: 3 / 4;
   }
 
   .call-screen[data-screen="searching"] .call-self { top: 0; width: 100%; aspect-ratio: auto; }
-
-  /* the small tile sits on top of the stage: keep the icebreaker card beside it, not under it */
-  .call-screen.is-media[data-screen="live"] .call-icebreaker {
-    align-self: flex-start;
-    max-width: calc(100% - var(--pip-width) - var(--space-2));
-  }
   .call-controls { gap: var(--space-2); }
   .call-controls .btn { min-height: 48px; }
 }
@@ -645,7 +556,7 @@ html.is-swapping-tiles::view-transition-new(root) { animation: none; }
 
 /* the call's own controls and your picture move left of the panel */
 .call-screen.chat-open .call-stage { right: 320px; }
-.call-screen.chat-open { --pip-right: calc(320px + var(--space-4)); }
+.call-screen.chat-open .call-self { right: calc(320px + var(--space-4)); }
 
 .call-chat__head {
   display: flex;
@@ -771,7 +682,7 @@ html.is-swapping-tiles::view-transition-new(root) { animation: none; }
   }
 
   .call-screen.chat-open .call-stage { right: 0; bottom: 50%; padding-bottom: var(--space-2); }
-  .call-screen.chat-open { --pip-right: var(--space-3); }
+  .call-screen.chat-open .call-self { right: var(--space-3); }
   .call-screen.chat-open .call-icebreaker,
   .call-screen.chat-open .call-hud__shared { display: none; }
   .call-chat__form { padding-bottom: calc(var(--space-3) + var(--safe-bottom)); }
