@@ -3,7 +3,7 @@ import { initApp, toast } from './app.js';
 import * as api from './api.js';
 import { icon, esc, avatarHtml, timeAgo, setLoading, friendlyError, radarHtml } from './ui.js';
 import { confirmAction, chooseAction, openReportDialog } from './dialogs.js';
-import { notifyIncoming, setViewingConversation } from './notify.js';
+import { notifyIncoming, setViewingConversation, playMatchSound } from './notify.js';
 import { factsHtml, mountFacts } from './facts.js';
 import { askAboutYou } from './quick-start.js';
 import { randomQuestion } from './icebreakers.js';
@@ -2037,6 +2037,7 @@ async function pollMatch() {
   if (state.matching !== m) return;
   if (result?.status === 'matched' && result.conversation_id) {
     stopMatching();
+    playMatchSound();
     toast('Matched! Say hi 👋', { type: 'success' });
     await refreshList();
     openConversation(result.conversation_id, { push: false, intro: result.shared_interests });

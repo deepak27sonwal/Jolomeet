@@ -5,7 +5,7 @@ import { initApp, toast } from './app.js';
 import * as api from './api.js';
 import { CallPeer, watchAudioLevel } from './rtc.js';
 import { icon, esc, avatarHtml, friendlyError, radarHtml } from './ui.js';
-import { notifyIncoming } from './notify.js';
+import { notifyIncoming, playMatchSound } from './notify.js';
 import { confirmAction, openReportDialog } from './dialogs.js';
 import { askAboutYou } from './quick-start.js';
 import { factsHtml, mountFacts } from './facts.js';
@@ -904,6 +904,7 @@ async function pollMatch() {
   }
   if (state.search !== search || result?.status !== 'matched' || !result.session_id) return;
   stopSearch();
+  playMatchSound();
   connect(result);
 }
 
