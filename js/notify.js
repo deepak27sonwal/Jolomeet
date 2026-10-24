@@ -153,25 +153,53 @@ let audio;
   } catch { /* no Web Audio */ }
 }, { once: true, capture: true }));
 
-/** A short two-note chime, made with Web Audio so there's no file to download. */
-export function playChime() {
+/**
+ * The sounds, as notes: [frequency in Hz, start in seconds, length in seconds, loudness, waveform].
+ * Made with Web Audio, so there's no file to download.
+ */
+export const SOUNDS = {
+  chime: [[880, 0, 0.4, 0.2, 'sine'], [1318.5, 0.13, 0.4, 0.2, 'sine']],
+  // a quick rising sparkle (C5 E5 G5 C6) over a soft shimmer, for "you've been matched"
+  match: [
+    [523.25, 0, 0.35, 0.17, 'sine'], [659.25, 0.11, 0.35, 0.17, 'sine'],
+    [783.99, 0.22, 0.35, 0.17, 'sine'], [1046.5, 0.33, 0.7, 0.2, 'sine'],
+    [1318.5, 0.33, 0.7, 0.07, 'triangle'], [1568, 0.4, 0.6, 0.05, 'triangle'],
+  ],
+};
+
+/** Plays notes on any audio context (the live one, or an offline one when rendering a sound to a file). */
+export function scheduleTones(ctx, start, tones) {
+  tones.forEach(([frequency, offset, length, loudness, wave]) => {
+    const tone = ctx.createOscillator();
+    const gain = ctx.createGain();
+    tone.type = wave;
+    tone.frequency.value = frequency;
+    gain.gain.setValueAtTime(0.0001, start + offset);
+    gain.gain.exponentialRampToValueAtTime(loudness, start + offset + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.0001, start + offset + length);
+    tone.connect(gain).connect(ctx.destination);
+    tone.start(start + offset);
+    tone.stop(start + offset + length + 0.05);
+  });
+}
+
+function play(tones) {
   try {
     audio ??= new (window.AudioContext || window.webkitAudioContext)();
     if (audio.state === 'suspended') audio.resume();
-    const start = audio.currentTime + 0.01;
-    [[880, 0], [1318.5, 0.13]].forEach(([frequency, offset]) => {
-      const tone = audio.createOscillator();
-      const gain = audio.createGain();
-      tone.type = 'sine';
-      tone.frequency.value = frequency;
-      gain.gain.setValueAtTime(0.0001, start + offset);
-      gain.gain.exponentialRampToValueAtTime(0.2, start + offset + 0.02);
-      gain.gain.exponentialRampToValueAtTime(0.0001, start + offset + 0.4);
-      tone.connect(gain).connect(audio.destination);
-      tone.start(start + offset);
-      tone.stop(start + offset + 0.45);
-    });
+    scheduleTones(audio, audio.currentTime + 0.01, tones);
   } catch {
-    /* sound isn't available: notifications still show */
+    /* sound isn't available: everything else still works */
   }
+}
+
+/** A short two-note chime for a new message. */
+export function playChime() {
+  play(SOUNDS.chime);
+}
+
+/** The "matched!" sound, when two people get connected. Follows the same sound switch as message alerts. */
+export async function playMatchSound() {
+  const prefs = await loadSettings();
+  if (prefs.sound_enabled) play(SOUNDS.match);
 }
