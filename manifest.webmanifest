@@ -1,0 +1,23 @@
+{
+  "id": "./",
+  "name": "JoloMeet",
+  "short_name": "JoloMeet",
+  "description": "Random text, audio and video chat with real people. Discover new friends and share your vibe.",
+  "lang": "en",
+  "categories": ["social"],
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "theme_color": "#E91E78",
+  "background_color": "#FFF7FB",
+  "icons": [
+    { "src": "assets/images/logo-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "assets/images/logo-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "assets/images/logo-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Random chat", "short_name": "Chat", "url": "chat.html?mode=random", "icons": [{ "src": "assets/images/logo-192.png", "sizes": "192x192", "type": "image/png" }] },
+    { "name": "Video chat", "short_name": "Video", "url": "video.html", "icons": [{ "src": "assets/images/logo-192.png", "sizes": "192x192", "type": "image/png" }] },
+    { "name": "Audio call", "short_name": "Audio", "url": "audio.html", "icons": [{ "src": "assets/images/logo-192.png", "sizes": "192x192", "type": "image/png" }] }
+  ]
+}
