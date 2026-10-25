@@ -7,6 +7,7 @@ import { friendlyError } from './ui.js';
 import {
   setCachedSettings, popupsWanted, setPopupsWanted, popupPermission, playChime,
 } from './notify.js';
+import { canInstall, isInstalled, promptInstall, onInstallChange } from './pwa.js';
 
 const root = document.getElementById('settings-root');
 const alertBox = document.getElementById('settings-alert');
@@ -110,3 +111,26 @@ popupsSwitch.addEventListener('change', async () => {
   setPopupsWanted(popupsSwitch.checked);
   renderPopups();
 });
+
+/* ---------- install as an app ---------- */
+
+const appCard = document.getElementById('app-card');
+const installButton = document.getElementById('install-btn');
+const installStatus = document.getElementById('install-status');
+
+function renderInstall() {
+  const installed = isInstalled();
+  const available = canInstall();
+  appCard.hidden = !installed && !available;
+  installButton.hidden = !available || installed;
+  installStatus.textContent = installed ? 'You’re using the installed app.' : '';
+  if (installed) installStatus.dataset.tone = 'ok'; else delete installStatus.dataset.tone;
+}
+
+installButton.addEventListener('click', async () => {
+  const outcome = await promptInstall();
+  if (outcome === 'accepted') toast('JoloMeet was added to your home screen.', { type: 'success' });
+});
+
+onInstallChange(renderInstall);
+renderInstall();

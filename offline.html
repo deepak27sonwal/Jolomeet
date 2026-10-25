@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>You’re offline · JoloMeet</title>
+  <meta name="theme-color" content="#E91E78">
+  <meta name="robots" content="noindex">
+  <style>
+    :root { color-scheme: light dark; }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      min-height: 100dvh;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      background: linear-gradient(160deg, #FFE3F0 0%, #FFF7FB 55%, #F1E6FF 100%);
+      color: #1E1636;
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      text-align: center;
+    }
+    main { max-width: 360px; display: grid; justify-items: center; gap: 12px; }
+    img { width: 72px; height: 72px; border-radius: 20px; }
+    h1 { margin: 8px 0 0; color: #4C1D95; font-size: 1.5rem; }
+    p { margin: 0; color: #6B6380; line-height: 1.5; }
+    button {
+      margin-top: 8px;
+      padding: 12px 28px;
+      border: 0;
+      border-radius: 999px;
+      background: linear-gradient(135deg, #FF4F9A, #E91E78);
+      color: #fff;
+      font: inherit;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    @media (prefers-color-scheme: dark) {
+      body { background: #130C24; color: #F2EAFF; }
+      h1 { color: #E9DDFF; }
+      p { color: #B5A8D0; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <img src="assets/images/logo-96.png" alt="" width="72" height="72">
+    <h1>You’re offline</h1>
+    <p>JoloMeet needs an internet connection to chat and call. Check your connection, then try again.</p>
+    <button type="button" onclick="location.reload()">Try again</button>
+  </main>
+</body>
+</html>

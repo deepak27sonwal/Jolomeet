@@ -5,8 +5,10 @@ import { initReveal, pauseOffscreenEffects } from './motion.js';
 import { confirmAction } from './dialogs.js';
 import { notifyIncoming } from './notify.js';
 import { icon } from './ui.js';
+import { registerServiceWorker } from './pwa.js';
 
 export function initApp() {
+  registerServiceWorker();
   initNavigation();
   initAuthHeader();
   initReveal();

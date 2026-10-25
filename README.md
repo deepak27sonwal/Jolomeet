@@ -7,6 +7,16 @@ Random text and video chat for meeting new people, built with HTML, CSS, vanilla
 - Database schema, security policies, storage buckets and Realtime authorization: [`supabase/migrations/`](supabase/migrations/)
 - Table and RPC reference plus project setup checklist: [`docs/database.md`](docs/database.md)
 
+## Install as an Android app
+
+JoloMeet is an installable web app, so there is nothing to download from a store:
+
+1. Open the site in **Chrome on Android**.
+2. Tap the **⋮** menu, then **Install app** (or **Add to Home screen**). Settings in JoloMeet also shows an **Install** button when the browser offers it.
+3. Open JoloMeet from its new home-screen icon. It runs full-screen and updates itself whenever the site is updated.
+
+Friends do the same: just send them the site link. Camera, microphone and notification permissions work as they do in Chrome. When there is no connection, an "offline" page is shown (`offline.html`); chat and calls always need the internet. The app files are `manifest.webmanifest` (name, icons, shortcuts) and `sw.js` (the service worker, which only ever uses the network first and never touches Supabase requests).
+
 ## Run locally
 
 The site is plain HTML, CSS and JavaScript modules, so it needs a local web server (opening the file directly won't load the modules or icons):
