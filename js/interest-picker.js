@@ -11,6 +11,19 @@ const INTEREST_ICONS = new Set([
   'music', 'gaming', 'movies', 'travel', 'fitness', 'memes', 'food', 'photography', 'anime', 'sports',
 ]);
 
+// One-tap presets: each picks one interest, and matching puts you with people who picked it first.
+// Shown only when the interest exists in the catalogue.
+const VIBES = [
+  { slug: 'music', emoji: '🎵', label: 'Music lounge' },
+  { slug: 'gaming', emoji: '🎮', label: 'Gamers' },
+  { slug: 'movies', emoji: '🎬', label: 'Movie night' },
+  { slug: 'travel', emoji: '✈️', label: 'Travel talk' },
+  { slug: 'food', emoji: '🍕', label: 'Foodies' },
+  { slug: 'memes', emoji: '😂', label: 'Meme zone' },
+  { slug: 'fitness', emoji: '💪', label: 'Gym buddies' },
+  { slug: 'anime', emoji: '🌸', label: 'Anime club' },
+];
+
 let catalogue = null; // fetched once per page
 
 /** Saved interest slugs, at most MAX_INTERESTS. */
@@ -38,6 +51,7 @@ export function interestPickerHtml() {
         <p class="interest-picker__count" aria-live="polite"></p>
       </div>
       <p class="interest-picker__hint">Pick interests to meet people who like the same things, or skip to meet anyone.</p>
+      <div class="vibes" role="group" aria-label="Pick a vibe" hidden></div>
       <div class="chip-list" role="group" aria-labelledby="picker-title" aria-busy="true">
         ${'<span class="skeleton skeleton--chip"></span>'.repeat(6)}
       </div>
@@ -91,6 +105,28 @@ export async function mountInterestPicker(root) {
   list.setAttribute('aria-busy', 'false');
   updateCount();
 
+  // quick vibes: one tap picks a single interest (tap it again to clear)
+  const vibes = picker.querySelector('.vibes');
+  const offered = VIBES.filter((v) => known.has(v.slug));
+  const refresh = () => {
+    list.querySelectorAll('[data-slug]').forEach((b) => b.setAttribute('aria-pressed', String(selected.has(b.dataset.slug))));
+    vibes.querySelectorAll('[data-vibe]').forEach((b) => b.setAttribute('aria-pressed', String(selected.size === 1 && selected.has(b.dataset.vibe))));
+    storage.set(STORAGE_KEYS.interests, [...selected]);
+    updateCount();
+  };
+  if (offered.length && vibes) {
+    vibes.innerHTML = offered.map((v) => `<button class="vibe" type="button" data-vibe="${esc(v.slug)}"
+      aria-pressed="${selected.size === 1 && selected.has(v.slug)}"><span aria-hidden="true">${v.emoji}</span>${esc(v.label)}</button>`).join('');
+    vibes.hidden = false;
+    vibes.addEventListener('click', (event) => {
+      const vibe = event.target.closest('[data-vibe]');
+      if (!vibe) return;
+      const only = selected.size === 1 && selected.has(vibe.dataset.vibe);
+      selected = new Set(only ? [] : [vibe.dataset.vibe]);
+      refresh();
+    });
+  }
+
   list.addEventListener('click', (event) => {
     const more = event.target.closest('.chip--more');
     if (more) {
@@ -112,7 +148,6 @@ export async function mountInterestPicker(root) {
       selected.add(slug);
     }
     button.setAttribute('aria-pressed', String(selected.has(slug)));
-    storage.set(STORAGE_KEYS.interests, [...selected]);
-    updateCount();
+    refresh();
   });
 }

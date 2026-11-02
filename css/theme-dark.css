@@ -97,3 +97,8 @@
 
 /* matching: the "Stay safe" tag on a dark background */
 [data-theme="dark"] .fact-card[data-kind="safe"] .fact-card__tag { color: #5FE0AE; }
+
+/* chat: nudge and sticker picker on a dark background */
+[data-theme="dark"] .nudge { border-color: rgba(169, 112, 255, 0.35); background: linear-gradient(160deg, #241A42 0%, #2E2152 100%); }
+[data-theme="dark"] .nudge__text strong { color: #C29BFF; }
+[data-theme="dark"] .sticker-pop__tabs button[aria-selected="true"] { background: #3A1F52; color: #FFB3D4; }

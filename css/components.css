@@ -1171,3 +1171,40 @@ select.input {
 @media (prefers-reduced-motion: reduce) {
   .fact-card { transition: none; }
 }
+
+/* ---------- Quick vibes in the interest picker (js/interest-picker.js) ---------- */
+.vibes {
+  display: flex;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+  padding-bottom: 2px;
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  scrollbar-width: none;
+}
+
+.vibes[hidden] { display: none; }
+.vibes::-webkit-scrollbar { display: none; }
+
+.vibe {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 6px;
+  min-height: 40px;
+  padding: 0 var(--space-3) 0 var(--space-2);
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  background: linear-gradient(160deg, var(--color-bg) 0%, var(--color-bg-soft) 100%);
+  color: var(--color-heading);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  white-space: nowrap;
+  scroll-snap-align: start;
+  cursor: pointer;
+  transition: transform 120ms var(--ease-out), box-shadow 120ms, border-color 120ms;
+}
+
+.vibe span { font-size: 1.15rem; line-height: 1; }
+.vibe:hover { border-color: var(--color-secondary); transform: translateY(-1px); }
+.vibe[aria-pressed="true"] { border-color: transparent; background: var(--gradient-primary); color: var(--color-on-primary); box-shadow: var(--shadow-md); }
