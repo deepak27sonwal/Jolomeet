@@ -1057,6 +1057,16 @@ select.input {
 .notify-card__go { color: var(--color-primary); }
 .notify-card.is-leaving { opacity: 0; transform: translateX(16px); }
 
+/* a "stay in touch" request: text and two buttons */
+.notify-card--request { flex-wrap: wrap; border-left-color: var(--color-accent); }
+.notify-card--request .notify-card__wrap { overflow: visible; white-space: normal; }
+.notify-card__actions { display: flex; flex-shrink: 0; gap: var(--space-2); }
+.notify-card--request .notify-card__text { flex: 1 1 140px; }
+@media (max-width: 480px) {
+  .notify-card__actions { flex: 1 0 100%; }
+  .notify-card__actions .btn { flex: 1; }
+}
+
 @media (prefers-reduced-motion: no-preference) {
   .notify-card { animation: notify-in 260ms var(--ease-out); transition: opacity 280ms, transform 280ms; }
 }

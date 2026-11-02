@@ -3,7 +3,7 @@ import { initNavigation } from './navigation.js';
 import { getSession, signOut, touchPresence, subscribeToNewMessages } from './api.js';
 import { initReveal, pauseOffscreenEffects } from './motion.js';
 import { confirmAction } from './dialogs.js';
-import { notifyIncoming } from './notify.js';
+import { notifyIncoming, notifyConnectionRequest, notifyConnectionAnswer } from './notify.js';
 import { icon } from './ui.js';
 import { registerServiceWorker } from './pwa.js';
 
@@ -79,7 +79,11 @@ let alertsStarted = false;
 function startMessageAlerts(userId) {
   if (alertsStarted || ['chat', 'audio', 'video'].includes(document.body.dataset.page)) return;
   alertsStarted = true;
-  subscribeToNewMessages(userId, (message) => notifyIncoming(message, userId)).catch(() => {});
+  subscribeToNewMessages(userId, {
+    onMessage: (message) => notifyIncoming(message, userId),
+    onConnectionRequest: (row) => notifyConnectionRequest(row, userId),
+    onConnectionAnswer: (row) => notifyConnectionAnswer(row, userId),
+  }).catch(() => {});
 }
 
 const HEARTBEAT_MS = 30_000;
