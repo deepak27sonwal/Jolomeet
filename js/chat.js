@@ -3,7 +3,7 @@ import { initApp, toast } from './app.js';
 import * as api from './api.js';
 import { icon, esc, avatarHtml, timeAgo, setLoading, friendlyError, radarHtml } from './ui.js';
 import { confirmAction, chooseAction, openReportDialog } from './dialogs.js';
-import { notifyIncoming, setViewingConversation, playMatchSound } from './notify.js';
+import { notifyIncoming, notifyConnectionRequest, notifyConnectionAnswer, setViewingConversation, playMatchSound } from './notify.js';
 import { factsHtml, mountFacts } from './facts.js';
 import { WAVE, stickerBody, parseSticker, stickerHtml, stickerPanelHtml } from './stickers.js';
 import { askAboutYou } from './quick-start.js';
@@ -52,6 +52,7 @@ const state = {
   search: '',
   conversations: [],
   requests: [],
+  heartRequests: [],     // pending "stay in touch" requests sent to me
   listLoaded: false,
   listError: null,
   presence: new Map(),   // user id -> last_seen_at
@@ -103,6 +104,7 @@ async function init() {
     }
   });
   window.addEventListener('online', resync);
+  document.addEventListener('jolomeet:connection-answered', (event) => onConnectionAnswered(event.detail.userId, event.detail.accepted));
   setInterval(() => catchUp(), CATCH_UP_MS);
   setInterval(nudgeTick, 5000);
 
@@ -128,6 +130,7 @@ function routeFromUrl() {
     return;
   }
   if (id) toast("That conversation link isn't valid.", { type: 'error' });
+  if (params.get('requests')) showRequestsTab();
   if (params.get('mode') === 'random') {
     if (!state.matching && !main.querySelector('.chat-setup')) renderMatchSetup({ push: false });
     return;
@@ -137,6 +140,13 @@ function routeFromUrl() {
     api.leaveMatchQueue().catch(() => {});
   }
   closeConversation({ push: false });
+}
+
+/** Opens the Requests tab, e.g. from a "wants to stay in touch" notification. */
+function showRequestsTab() {
+  state.filter = 'requests';
+  document.querySelectorAll('.chat-filter').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.filter === 'requests')));
+  renderList();
 }
 
 function setUrl(search, push) {
@@ -167,6 +177,11 @@ function bindSidebar() {
     renderList();
   });
   list.addEventListener('click', (event) => {
+    const answer = event.target.closest('[data-heart-answer]');
+    if (answer) {
+      answerHeartRequest(answer);
+      return;
+    }
     const item = event.target.closest('[data-conversation]');
     if (item) {
       openConversation(item.dataset.conversation, { push: true });
@@ -180,9 +195,14 @@ function bindSidebar() {
 
 async function refreshList() {
   try {
-    const [all, requests] = await Promise.all([api.listConversations('all'), api.listConversations('requests')]);
+    const [all, requests, heartRequests] = await Promise.all([
+      api.listConversations('all'),
+      api.listConversations('requests'),
+      api.listIncomingRequests(state.me.id).catch(() => state.heartRequests), // the list still works without them
+    ]);
     state.conversations = all;
     state.requests = requests;
+    state.heartRequests = heartRequests;
     state.listError = null;
   } catch (error) {
     state.listError = error;
@@ -245,8 +265,9 @@ function visibleRows() {
 }
 
 function renderList() {
-  requestsBadge.hidden = !state.requests.length;
-  requestsBadge.textContent = String(state.requests.length);
+  const pending = state.requests.length + state.heartRequests.length;
+  requestsBadge.hidden = !pending;
+  requestsBadge.textContent = String(pending);
   if (!state.listLoaded) return;
   list.setAttribute('aria-busy', 'false');
 
@@ -259,11 +280,24 @@ function renderList() {
   }
 
   const rows = visibleRows();
-  if (!rows.length) {
+  const hearts = state.filter === 'requests'
+    ? state.heartRequests.filter((r) => !state.search || r.name.toLowerCase().includes(state.search)) : [];
+  if (!rows.length && !hearts.length) {
     list.innerHTML = `<li class="chat-list-empty">${emptyListMessage()}</li>`;
     return;
   }
-  list.innerHTML = rows.map(listItemHtml).join('');
+  list.innerHTML = hearts.map(heartRequestHtml).join('') + rows.map(listItemHtml).join('');
+}
+
+/** A "stay in touch" request waiting for an answer (shown first in the Requests tab). */
+function heartRequestHtml(r) {
+  return `<li class="chat-request" data-heart-request="${esc(r.id)}">
+    <span class="avatar-wrap">${avatarHtml(r.name, r.avatarUrl)}</span>
+    <span class="chat-request__body"><strong>${esc(r.name)}</strong><span>wants to stay in touch</span></span>
+    <span class="chat-request__actions">
+      <button class="btn btn--primary btn--sm" type="button" data-heart-answer="accept" data-request-id="${esc(r.id)}" data-user-id="${esc(r.userId)}">Accept</button>
+      <button class="btn btn--secondary btn--sm" type="button" data-heart-answer="decline" data-request-id="${esc(r.id)}" data-user-id="${esc(r.userId)}">Decline</button>
+    </span></li>`;
 }
 
 function emptyListMessage() {
@@ -272,7 +306,7 @@ function emptyListMessage() {
     all: ['No conversations yet.', true],
     online: ['None of your chats are online right now.', false],
     favorites: ['Star a chat to keep it here.', false],
-    requests: ['No message requests.', false],
+    requests: ['No requests right now.', false],
   };
   const [text, cta] = messages[state.filter];
   return `<p>${text}</p>${cta
@@ -394,8 +428,11 @@ async function openConversation(id, { push = false, intro = null } = {}) {
     loadingOlder: false,
     intro,
     typingChannel: null,
-    liked: false,          // you tapped "Stay in touch" (only you can see this)
-    mutual: null,          // 'mutual' | 'mutual_needs_account' once both tapped
+    liked: false,          // you tapped "Stay in touch" (a request to them, once they have an account)
+    stay: null,            // 'none' | 'requested' | 'incoming' | 'mutual' | 'declined' | 'passed'
+    incoming: false,       // they asked you to stay in touch and you haven't answered
+    declined: false,       // they said no to your request
+    mutual: null,          // 'mutual' | 'mutual_needs_account' once connected
     recorder: null,
     typingUntil: 0,
     lastTypingSent: 0,
@@ -574,6 +611,11 @@ function renderBanners() {
   if (!slot) return;
   const name = esc(a.partner.name);
   let html = a.mutual && !a.blocked ? mutualBannerHtml(a) : '';
+  if (a.incoming && !a.blocked) {
+    html += `<div class="chat-banner chat-banner--mutual">${icon('heart', 'icon is-filled')}<p><strong>${name}</strong> wants to stay in touch with you.</p>
+      <button class="btn btn--primary" type="button" data-action="stay-accept">${icon('check', 'icon icon--sm')}Accept</button>
+      <button class="btn btn--secondary" type="button" data-action="stay-decline">Decline</button></div>`;
+  }
   if (a.blocked) {
     html += `<div class="chat-banner chat-banner--warn">${icon('ban')}<p>You blocked ${name}. You won’t receive messages from them.</p>
       <button class="btn btn--secondary" type="button" data-action="unblock">Unblock</button></div>`;
@@ -912,6 +954,7 @@ function upsertMessage(message) {
 async function catchUp({ full = false } = {}) {
   const a = state.active;
   if (!a || a.catchingUp || document.visibilityState !== 'visible') return;
+  pollStay(a);
   const confirmed = a.messages.filter((m) => m.id && m.status === 'sent');
   const since = confirmed.at(-1)?.created_at;
   a.catchingUp = true;
@@ -1178,11 +1221,15 @@ function addIcebreaker() {
 /* ---------- stay in touch ---------- */
 
 function stayButtonHtml(a) {
-  const on = Boolean(a.liked || a.mutual);
-  const label = a.mutual ? 'You’re staying in touch'
-    : a.liked ? 'You’d like to stay in touch (only you can see this)' : 'Stay in touch';
+  const on = Boolean(a.liked || a.mutual || a.stay === 'mutual') && !a.declined;
+  const label = a.mutual || a.stay === 'mutual' ? 'You’re staying in touch'
+    : a.declined ? 'Not this time'
+      : a.incoming ? `Accept ${a.partner.name}’s request to stay in touch`
+        : a.stay === 'requested' ? 'Request sent. Waiting for them to answer'
+          : a.liked ? 'You’d like to stay in touch (it becomes a connection once they have an account)'
+            : 'Stay in touch (sends them a request)';
   return `<button class="icon-button chat-stay${on ? ' is-on' : ''}" type="button" data-action="stay" aria-pressed="${on}"
-    aria-label="${label}" title="${label}">${icon('heart', `icon${on ? ' is-filled' : ''}`)}</button>`;
+    aria-label="${esc(label)}" title="${esc(label)}"${a.declined ? ' aria-disabled="true"' : ''}>${icon('heart', `icon${on ? ' is-filled' : ''}`)}</button>`;
 }
 
 function mutualBannerHtml(a) {
@@ -1199,25 +1246,60 @@ function mutualBannerHtml(a) {
   return `${start} ${name} is chatting without an account, so you’ll be connected as soon as they sign up.</p></div>`;
 }
 
-/** Restores your own heart (and a connection that came from it) when a chat is reopened. */
+/** Restores your heart, and any request in either direction, when a chat is reopened. */
 async function loadStayInTouch(a) {
+  let liked;
+  let status;
   try {
-    a.liked = await api.didStayInTouch(a.session.id);
+    [liked, status] = await Promise.all([api.didStayInTouch(a.session.id), api.getStayStatus(state.me.id, a.partner.id)]);
   } catch {
     return;
   }
-  if (a.liked && a.partner.profile?.connection_status === 'connected') a.mutual = 'mutual';
-  if (state.active === a && a.liked) {
+  a.liked = liked || status === 'requested';
+  applyStay(a, status, { quiet: true });
+}
+
+/** Brings the heart and banners in line with where the request stands. */
+function applyStay(a, status, { quiet = false } = {}) {
+  if (!a || a.stay === status) return;
+  const before = a.stay;
+  a.stay = status;
+  a.incoming = status === 'incoming';
+  a.declined = status === 'declined';
+  if (status === 'requested') a.liked = true;
+  if (status === 'mutual' && a.liked) a.mutual ||= 'mutual';
+  if (state.active === a) {
     renderHead();
     renderBanners();
+  }
+  if (quiet || before !== 'requested') return;
+  if (status === 'mutual') toast(`🎉 ${a.partner.name} accepted. You’re staying in touch!`, { type: 'success' });
+  else if (status === 'declined') toast(`Not this time. ${a.partner.name} isn’t staying in touch right now. Plenty more people to meet.`, { duration: 7000 });
+}
+
+/** While a request is open (either way), check for an answer or a new request even if realtime dropped. */
+async function pollStay(a) {
+  if (!a.session || a.kind !== 'random' || !a.partner.id || a.blocked || a.stay === 'mutual' || a.stay === 'declined') return;
+  try {
+    applyStay(a, await api.getStayStatus(state.me.id, a.partner.id));
+  } catch {
+    /* offline: the next check tries again */
   }
 }
 
 async function stayInTouch() {
   const a = state.active;
   if (!a?.session || a.mutual) return;
-  if (a.liked) {
-    toast('You’ve said you’d like to stay in touch. If they tap the heart too, you’ll both be connected.');
+  if (a.declined) {
+    toast(`${a.partner.name} isn’t staying in touch right now. Plenty more people to meet.`);
+    return;
+  }
+  if (a.stay === 'requested') {
+    toast('Your request is waiting. We’ll tell you when they answer.');
+    return;
+  }
+  if (a.liked && a.stay !== 'incoming') {
+    toast('You’ve said you’d like to stay in touch. You’ll be connected once they have an account too.');
     return;
   }
   let result;
@@ -1228,16 +1310,79 @@ async function stayInTouch() {
     return;
   }
   if (state.active !== a) return;
+  if (result === 'declined') {
+    applyStay(a, 'declined', { quiet: true });
+    toast(`${a.partner.name} isn’t staying in touch right now. Plenty more people to meet.`);
+    return;
+  }
   a.liked = true;
-  if (result === 'waiting') {
-    toast('Nice! If they tap the heart too, you’ll both be connected. They won’t know unless they do.', { duration: 6000 });
+  if (result === 'requested') {
+    applyStay(a, 'requested', { quiet: true });
+    toast(`Request sent to ${a.partner.name}. We’ll tell you when they answer.`, { duration: 6000 });
+  } else if (result === 'waiting') {
+    toast('Nice! They’ll be connected with you as soon as they create an account.', { duration: 6000 });
   } else {
     a.mutual = result;
+    a.incoming = false;
+    a.stay = 'mutual';
     a.typingChannel?.sendSignal({ kind: 'mutual', result, user_id: state.me.id });
     refreshListSoon();
   }
   renderHead();
   renderBanners();
+}
+
+/** Accept or decline the heart request banner in the open chat. */
+async function answerStay(accept) {
+  const a = state.active;
+  if (!a?.incoming) return;
+  try {
+    const connection = await api.getConnectionWith(state.me.id, a.partner.id);
+    if (!connection) throw new Error('missing');
+    await api.respondToConnection(connection.id, accept);
+  } catch (error) {
+    toast(friendlyError(error), { type: 'error' });
+    return;
+  }
+  onConnectionAnswered(a.partner.id, accept);
+  if (accept) a.typingChannel?.sendSignal({ kind: 'mutual', result: 'mutual', user_id: state.me.id });
+}
+
+/** I answered a request (banner, pop-up card or the Requests list): update the chat, list and heart. */
+function onConnectionAnswered(userId, accepted) {
+  state.heartRequests = state.heartRequests.filter((r) => r.userId !== userId);
+  const a = state.active;
+  if (a && a.partner.id === userId) {
+    a.incoming = false;
+    if (accepted) {
+      a.liked = true;
+      a.mutual = 'mutual';
+      a.stay = 'mutual';
+    } else {
+      a.stay = 'passed';
+    }
+    renderHead();
+    renderBanners();
+  }
+  renderList();
+  refreshListSoon();
+}
+
+/** Accept or decline from the Requests list. */
+async function answerHeartRequest(button) {
+  const accept = button.dataset.heartAnswer === 'accept';
+  const row = button.closest('[data-heart-request]');
+  row?.querySelectorAll('button').forEach((b) => { b.disabled = true; });
+  try {
+    await api.respondToConnection(button.dataset.requestId, accept);
+  } catch (error) {
+    row?.querySelectorAll('button').forEach((b) => { b.disabled = false; });
+    toast(friendlyError(error), { type: 'error' });
+    return;
+  }
+  const name = state.heartRequests.find((r) => r.id === button.dataset.requestId)?.name || 'them';
+  onConnectionAnswered(button.dataset.userId, accept);
+  if (accept) toast(`You’re now connected with ${name}.`, { type: 'success' });
 }
 
 /** Signals from the other person in this conversation. */
@@ -1404,6 +1549,8 @@ function bindMain() {
       'record-cancel': cancelVoiceNote,
       'record-send': sendVoiceNote,
       stay: stayInTouch,
+      'stay-accept': () => answerStay(true),
+      'stay-decline': () => answerStay(false),
       'open-direct': () => openDirectChat(button),
     };
     actions[button.dataset.action]?.();
@@ -2243,6 +2390,22 @@ function subscribeRealtime() {
       if (row.emoji) message.reactions[row.user_id] = row.emoji;
       else delete message.reactions[row.user_id];
       renderMessages({ keepOffset: !state.active.stickToBottom });
+    },
+    onConnectionRequest(row) {
+      const a = state.active;
+      const viewing = a?.partner.id === row.requester_id && document.visibilityState === 'visible';
+      if (a?.partner.id === row.requester_id) applyStay(a, 'incoming', { quiet: true });
+      refreshListSoon();
+      if (!viewing) notifyConnectionRequest(row, state.me.id); // the banner already shows it in that chat
+    },
+    onConnectionAnswer(row) {
+      const a = state.active;
+      if (a?.partner.id === row.addressee_id) {
+        if (row.status === 'accepted') a.liked = true;
+        applyStay(a, row.status === 'accepted' ? 'mutual' : 'declined', { quiet: true });
+      }
+      refreshListSoon();
+      notifyConnectionAnswer(row, state.me.id);
     },
     onParticipant(row) {
       const a = state.active;

@@ -5,7 +5,7 @@ import { initApp, toast } from './app.js';
 import * as api from './api.js';
 import { CallPeer, watchAudioLevel } from './rtc.js';
 import { icon, esc, avatarHtml, friendlyError, radarHtml } from './ui.js';
-import { notifyIncoming, playMatchSound } from './notify.js';
+import { notifyIncoming, notifyConnectionRequest, notifyConnectionAnswer, playMatchSound } from './notify.js';
 import { confirmAction, openReportDialog } from './dialogs.js';
 import { askAboutYou } from './quick-start.js';
 import { factsHtml, mountFacts } from './facts.js';
@@ -106,11 +106,25 @@ async function init() {
   stage.addEventListener('click', onStageClick);
   if (chatPanel) bindCallChat();
   window.addEventListener('pagehide', leaveEverything);
+  document.addEventListener('jolomeet:connection-answered', (event) => onStayAnswered(event.detail.userId, event.detail.accepted));
   api.subscribeToInbox(state.me.id, {
     onMatched: () => { if (state.search) pollMatch(); },
     onMessage: (message) => {
       if (message.conversation_id === state.call?.conversationId) onCallMessage(message);
       else notifyIncoming(message, state.me.id); // another chat: chime and pop-up per your settings
+    },
+    onConnectionRequest: (row) => {
+      const call = callWith(row.requester_id);
+      if (call) applyCallStay(call, 'incoming');
+      else notifyConnectionRequest(row, state.me.id);
+    },
+    onConnectionAnswer: (row) => {
+      const call = callWith(row.addressee_id);
+      if (call) {
+        if (row.status === 'accepted') call.liked = true;
+        applyCallStay(call, row.status === 'accepted' ? 'mutual' : 'declined');
+      }
+      notifyConnectionAnswer(row, state.me.id);
     },
     onSession: (session) => {
       if (state.call?.sessionId === session.id && session.status === 'ended' && session.ended_by !== state.me.id) {
@@ -209,13 +223,14 @@ function renderConnecting() {
 
 function renderLive() {
   if (VIDEO) {
-    setScreen('live', `${hudHtml(state.call, true)}${revealCardHtml(state.call)}${icebreakerHtml(state.call)}${videoControlsHtml(true)}`);
+    setScreen('live', `${hudHtml(state.call, true)}${incomingStayHtml(state.call)}${revealCardHtml(state.call)}${icebreakerHtml(state.call)}${videoControlsHtml(true)}`);
     tickCallTimer();
     return;
   }
   setScreen('live', `
     ${partnerHtml(state.call)}
     <p class="call-timer" id="call-timer" aria-label="Call duration">0:00</p>
+    ${incomingStayHtml(state.call)}
     ${icebreakerHtml(state.call)}
     <div class="call-actions">
       ${muteButtonHtml()}${stayButtonHtml(state.call)}
@@ -307,11 +322,26 @@ function icebreakerHtml(c) {
 
 function stayButtonHtml(c) {
   if (!c) return '';
-  const on = Boolean(c.liked || c.mutual);
+  const on = Boolean(c.liked || c.mutual) && !c.declined;
   const label = c.mutual ? 'It’s mutual: you’re staying in touch'
-    : c.liked ? 'You’d like to stay in touch (only you can see this)' : 'Stay in touch';
+    : c.declined ? 'Not this time'
+      : c.incoming ? `Accept ${c.name}’s request to stay in touch`
+        : c.stay === 'requested' ? 'Request sent. Waiting for them to answer'
+          : c.liked ? 'You’d like to stay in touch (it becomes a connection once they have an account)'
+            : 'Stay in touch (sends them a request)';
   return `<button class="call-mute call-stay${on ? ' is-on' : ''}" type="button" data-action="stay" aria-pressed="${on}"
-    aria-label="${label}" title="${label}">${icon('heart', `icon${on ? ' is-filled' : ''}`)}</button>`;
+    aria-label="${esc(label)}" title="${esc(label)}"${c.declined ? ' aria-disabled="true"' : ''}>${icon('heart', `icon${on ? ' is-filled' : ''}`)}</button>`;
+}
+
+/** They tapped the heart for you: Accept or Decline, right in the call. */
+function incomingStayHtml(c) {
+  if (!c?.incoming || c.mutual) return '';
+  const name = esc(c.name);
+  return `<div class="call-mutual call-request">${icon('heart', 'icon is-filled')}<p><strong>${name}</strong> wants to stay in touch with you.</p>
+    <div class="call-request__actions">
+      <button class="btn btn--primary btn--sm" type="button" data-action="stay-accept">${icon('check', 'icon icon--sm')}Accept</button>
+      <button class="btn btn--secondary btn--sm" type="button" data-action="stay-decline">Decline</button>
+    </div></div>`;
 }
 
 /** End screen: keep in touch with the person you just talked to, or what happened if you both did. */
@@ -327,8 +357,15 @@ function endedStayHtml(call) {
           <a class="btn btn--primary" href="register.html">Create Free Account</a></div>`
       : `<div class="call-mutual">${icon('heart', 'icon is-filled')}<p><strong>It’s mutual!</strong> You’ll be connected with ${name} as soon as they create an account.</p></div>`;
   }
+  if (call.incoming) return incomingStayHtml(call);
+  if (call.declined) {
+    return `<p class="call-note">${icon('heart', 'icon icon--sm')}${name} isn’t staying in touch right now. Plenty more people to meet.</p>`;
+  }
+  if (call.stay === 'requested') {
+    return `<p class="call-note">${icon('heart', 'icon icon--sm is-filled')}Request sent to ${name}. We’ll tell you when they answer.</p>`;
+  }
   if (call.liked) {
-    return `<p class="call-note">${icon('heart', 'icon icon--sm is-filled')}You’d like to stay in touch. If ${name} taps the heart too, you’ll be connected.</p>`;
+    return `<p class="call-note">${icon('heart', 'icon icon--sm is-filled')}You’d like to stay in touch. You’ll be connected once ${name} has an account too.</p>`;
   }
   return `<button class="btn btn--secondary" type="button" data-action="stay-ended">${icon('heart', 'icon icon--sm')}Stay in touch with ${name}</button>`;
 }
@@ -386,8 +423,16 @@ function showIcebreaker(c) {
 
 async function stayInTouch(call) {
   if (!call?.sessionId || call.mutual) return;
-  if (call.liked) {
-    toast('You’ve said you’d like to stay in touch. If they tap the heart too, you’ll both be connected.');
+  if (call.declined) {
+    toast(`${call.name} isn’t staying in touch right now. Plenty more people to meet.`);
+    return;
+  }
+  if (call.stay === 'requested') {
+    toast('Your request is waiting. We’ll tell you when they answer.');
+    return;
+  }
+  if (call.liked && !call.incoming) {
+    toast('You’ve said you’d like to stay in touch. You’ll be connected once they have an account too.');
     return;
   }
   let result;
@@ -397,17 +442,98 @@ async function stayInTouch(call) {
     toast(friendlyError(error), { type: 'error' });
     return;
   }
+  if (result === 'declined') {
+    applyCallStay(call, 'declined');
+    toast(`${call.name} isn’t staying in touch right now. Plenty more people to meet.`);
+    return;
+  }
   call.liked = true;
-  if (result === 'waiting') {
-    toast('Nice! If they tap the heart too, you’ll both be connected. They won’t know unless they do.', { duration: 6000 });
+  if (result === 'requested') {
+    call.stay = 'requested';
+    toast(`Request sent to ${call.name}. We’ll tell you when they answer.`, { duration: 6000 });
+  } else if (result === 'waiting') {
+    toast('Nice! They’ll be connected with you as soon as they create an account.', { duration: 6000 });
   } else {
     call.mutual = result;
+    call.incoming = false;
+    call.stay = 'mutual';
     call.channel?.send({ kind: 'mutual', result });
     toast(`It’s mutual! You and ${call.name} want to stay in touch.`, { type: 'success' });
   }
+  showCallStay(call);
+}
+
+/** Redraws whichever screen shows this call's heart: the live call or the end screen. */
+function showCallStay(call) {
   if (state.call === call) rerenderCall(call);
   else if (state.screen === 'ended' && state.lastCall === call) renderEnded(state.lastReason, { duration: state.lastDuration, call });
 }
+
+/** Brings the call's heart and banners in line with where the request stands. */
+function applyCallStay(call, status, { quiet = true } = {}) {
+  if (!call || call.stay === status) return;
+  const before = call.stay;
+  call.stay = status;
+  call.incoming = status === 'incoming';
+  call.declined = status === 'declined';
+  if (status === 'requested') call.liked = true;
+  if (status === 'mutual' && call.liked) call.mutual ||= 'mutual';
+  showCallStay(call);
+  if (quiet || before !== 'requested') return;
+  if (status === 'mutual') toast(`🎉 ${call.name} accepted. You’re staying in touch!`, { type: 'success' });
+  else if (status === 'declined') toast(`Not this time. ${call.name} isn’t staying in touch right now. Plenty more people to meet.`, { duration: 7000 });
+}
+
+/** The call (or the call that just ended) this person was in, if they are its partner. */
+function callWith(userId) {
+  return [state.call, state.lastCall].find((c) => c?.partnerId === userId);
+}
+
+/** Accept or decline their request from the call screen. */
+async function answerStay(call, accept) {
+  if (!call?.incoming) return;
+  try {
+    const connection = await api.getConnectionWith(state.me.id, call.partnerId);
+    if (!connection) throw new Error('missing');
+    await api.respondToConnection(connection.id, accept);
+  } catch (error) {
+    toast(friendlyError(error), { type: 'error' });
+    return;
+  }
+  onStayAnswered(call.partnerId, accept);
+  if (accept) call.channel?.send({ kind: 'mutual', result: 'mutual' });
+}
+
+/** I answered a request (call banner or pop-up card). */
+function onStayAnswered(userId, accepted) {
+  const call = callWith(userId);
+  if (!call) return;
+  call.incoming = false;
+  if (accepted) {
+    call.liked = true;
+    call.mutual = 'mutual';
+    call.stay = 'mutual';
+    toast(`You’re now connected with ${call.name}.`, { type: 'success' });
+  } else {
+    call.stay = 'passed';
+  }
+  showCallStay(call);
+}
+
+/** Checks for an answer or a new request even when realtime dropped. */
+async function pollCallStay() {
+  const call = state.call || (state.screen === 'ended' ? state.lastCall : null);
+  if (!call?.sessionId || !call.partnerId || document.visibilityState !== 'visible'
+    || call.stay === 'mutual' || call.stay === 'declined') return;
+  try {
+    applyCallStay(call, await api.getStayStatus(state.me.id, call.partnerId), { quiet: false });
+  } catch {
+    /* offline: try again on the next check */
+  }
+}
+
+setInterval(pollCallStay, 8000);
+document.addEventListener('visibilitychange', pollCallStay);
 
 /** The other person says it's mutual: believe the database, not the message. */
 async function onMutual(call, result) {
@@ -683,6 +809,8 @@ function onStageClick(event) {
     'switch-camera': switchCamera,
     reveal,
     stay: () => stayInTouch(state.call),
+    'stay-accept': () => answerStay(state.call || state.lastCall, true),
+    'stay-decline': () => answerStay(state.call || state.lastCall, false),
     'stay-ended': () => stayInTouch(state.lastCall),
     'open-direct': () => openDirectChat(button),
     'icebreaker-next': nextIcebreaker,
@@ -942,7 +1070,10 @@ async function connect(match) {
     messages: [],            // text chat during the call (kept in the conversation)
     chatSince: new Date(Date.now() - 2 * 60_000).toISOString(), // catch-up starts here (allows for clock drift)
     unread: 0,
-    liked: false,            // you tapped "Stay in touch" (only you can see this)
+    liked: false,            // you tapped "Stay in touch" (a request to them, once they have an account)
+    stay: null,              // 'none' | 'requested' | 'incoming' | 'mutual' | 'declined' | 'passed'
+    incoming: false,         // they asked you to stay in touch and you haven't answered
+    declined: false,         // they said no to your request
     mutual: null,            // 'mutual' | 'mutual_needs_account'
     iRevealed: false,
     theyRevealed: false,

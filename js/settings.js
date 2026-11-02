@@ -12,6 +12,7 @@ import { canInstall, isInstalled, promptInstall, onInstallChange } from './pwa.j
 const root = document.getElementById('settings-root');
 const alertBox = document.getElementById('settings-alert');
 const messagesSwitch = document.getElementById('set-notify-messages');
+const requestsSwitch = document.getElementById('set-notify-requests');
 const soundSwitch = document.getElementById('set-sound');
 const popupsSwitch = document.getElementById('set-popups');
 const popupStatus = document.getElementById('popup-status');
@@ -40,6 +41,7 @@ async function init() {
     if (!row) throw new Error('Your settings could not be found. Please refresh the page.');
     show(row);
     messagesSwitch.disabled = false;
+    requestsSwitch.disabled = false;
     soundSwitch.disabled = false;
   } catch (error) {
     alertBox.textContent = friendlyError(error);
@@ -51,6 +53,7 @@ async function init() {
 
 function show(row) {
   messagesSwitch.checked = !!row.notify_messages;
+  requestsSwitch.checked = row.notify_connection_requests !== false;
   soundSwitch.checked = !!row.sound_enabled;
   setCachedSettings(row);
 }
@@ -70,6 +73,7 @@ async function save(input, field) {
 }
 
 messagesSwitch.addEventListener('change', () => save(messagesSwitch, 'notify_messages'));
+requestsSwitch.addEventListener('change', () => save(requestsSwitch, 'notify_connection_requests'));
 soundSwitch.addEventListener('change', () => save(soundSwitch, 'sound_enabled'));
 
 document.getElementById('test-sound').addEventListener('click', playChime);

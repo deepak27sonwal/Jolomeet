@@ -687,3 +687,6 @@
   .call-screen.chat-open .call-hud__shared { display: none; }
   .call-chat__form { padding-bottom: calc(var(--space-3) + var(--safe-bottom)); }
 }
+
+/* a "stay in touch" request in a call: text and two buttons */
+.call-request__actions { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--space-2); }

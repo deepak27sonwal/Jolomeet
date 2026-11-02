@@ -182,11 +182,20 @@ export async function isConversationMuted(conversationId, userId) {
   return Boolean(data?.is_muted);
 }
 
-/** New messages in any of your chats, for notifications on pages without the chat list. */
-export async function subscribeToNewMessages(userId, onMessage) {
+/**
+ * New messages, "stay in touch" requests to you and answers to yours, for
+ * notifications on pages without the chat list. handlers: { onMessage,
+ * onConnectionRequest(row), onConnectionAnswer(row) }
+ */
+export async function subscribeToNewMessages(userId, handlers) {
   await authorizeRealtime();
+  const h = typeof handlers === 'function' ? { onMessage: handlers } : handlers;
   return supabase.channel(`notify-${userId}`)
-    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, (p) => onMessage(p.new))
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, (p) => h.onMessage?.(p.new))
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'connections', filter: `addressee_id=eq.${userId}` },
+      (p) => h.onConnectionRequest?.(p.new))
+    .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'connections', filter: `requester_id=eq.${userId}` },
+      (p) => h.onConnectionAnswer?.(p.new))
     .subscribe();
 }
 
@@ -269,6 +278,30 @@ export async function getConnectionWith(myId, otherId) {
     .maybeSingle();
   if (error) throw error;
   return data;
+}
+
+/**
+ * Where "stay in touch" stands between you and someone: 'none', 'requested' (you asked, waiting),
+ * 'incoming' (they asked you), 'mutual' (connected), 'declined' (they said no to your request) or
+ * 'passed' (you said no to theirs).
+ */
+export async function getStayStatus(myId, otherId) {
+  const connection = await getConnectionWith(myId, otherId);
+  if (!connection) return 'none';
+  if (connection.status === 'accepted') return 'mutual';
+  if (connection.status === 'declined') return connection.requester_id === myId ? 'declined' : 'passed';
+  return connection.requester_id === myId ? 'requested' : 'incoming';
+}
+
+/** Pending "stay in touch" / connection requests sent to you, newest first, with who sent them. */
+export async function listIncomingRequests(myId) {
+  const { data, error } = await supabase.from('connections')
+    .select('id, requester_id, created_at')
+    .eq('addressee_id', myId).eq('status', 'pending')
+    .order('created_at', { ascending: false }).limit(50);
+  if (error) throw error;
+  const people = await Promise.all(data.map((row) => getSenderSummary(row.requester_id).catch(() => ({ name: 'Someone', avatarUrl: null }))));
+  return data.map((row, i) => ({ id: row.id, userId: row.requester_id, createdAt: row.created_at, ...people[i] }));
 }
 
 export async function sendConnectionRequest(myId, otherId) {
@@ -577,6 +610,10 @@ export async function subscribeToInbox(userId, handlers) {
     .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'message_reactions' }, (p) => handlers.onReaction?.(p.new))
     .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'conversation_participants' }, (p) => handlers.onParticipant?.(p.new))
     .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'match_sessions' }, (p) => handlers.onSession?.(p.new))
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'connections', filter: `addressee_id=eq.${userId}` },
+      (p) => handlers.onConnectionRequest?.(p.new))
+    .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'connections', filter: `requester_id=eq.${userId}` },
+      (p) => handlers.onConnectionAnswer?.(p.new))
     .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'match_session_participants', filter: `user_id=eq.${userId}` },
       (p) => handlers.onMatched?.(p.new))
     .subscribe((status) => handlers.onStatus?.(status));

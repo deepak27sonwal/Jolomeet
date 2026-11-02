@@ -121,7 +121,7 @@ function showSystemNotification(sender, text, url, tag) {
 
 let cardRegion;
 
-function showCard(sender, text, url) {
+function region() {
   if (!cardRegion) {
     cardRegion = document.createElement('div');
     cardRegion.className = 'notify-region';
@@ -129,6 +129,11 @@ function showCard(sender, text, url) {
     cardRegion.setAttribute('aria-live', 'polite');
     document.body.append(cardRegion);
   }
+  return cardRegion;
+}
+
+function showCard(sender, text, url) {
+  const cardRegion = region();
   const card = document.createElement('a');
   card.className = 'notify-card';
   card.href = url;
@@ -141,6 +146,116 @@ function showCard(sender, text, url) {
     card.classList.add('is-leaving');
     setTimeout(() => card.remove(), 300);
   }, 5000);
+}
+
+/* ---------- "stay in touch" requests (the heart) ---------- */
+
+const shownRequests = new Set();
+
+function senderOf(userId) {
+  if (!senders.has(userId)) {
+    senders.set(userId, api.getSenderSummary(userId).catch(() => ({ name: 'Someone', avatarUrl: null })));
+  }
+  return senders.get(userId);
+}
+
+function removeCard(card, delay = 0) {
+  setTimeout(() => {
+    card.classList.add('is-leaving');
+    setTimeout(() => card.remove(), 300);
+  }, delay);
+}
+
+/** Tells pages that show the heart or banners (chat, call) that a request was answered. */
+function announceAnswer(userId, accepted) {
+  document.dispatchEvent(new CustomEvent('jolomeet:connection-answered', { detail: { userId, accepted } }));
+}
+
+/** Someone tapped the heart for you: a card with Accept and Decline. */
+export async function notifyConnectionRequest(row, myId) {
+  if (!row || row.addressee_id !== myId || row.status !== 'pending' || shownRequests.has(row.id)) return;
+  const prefs = await loadSettings();
+  if (prefs.notify_connection_requests === false) return;
+  shownRequests.add(row.id);
+  const sender = await senderOf(row.requester_id);
+  if (prefs.sound_enabled) playChime();
+  if (document.hidden) {
+    unseen += 1;
+    document.title = `(${unseen}) ${BASE_TITLE}`;
+    showSystemNotification(sender, 'wants to stay in touch with you', `chat.html?requests=1`, `request-${row.id}`);
+  }
+  showRequestCard(row, sender);
+}
+
+function showRequestCard(row, sender) {
+  const card = document.createElement('div');
+  card.className = 'notify-card notify-card--request';
+  card.setAttribute('role', 'group');
+  card.setAttribute('aria-label', `${sender.name} wants to stay in touch`);
+  card.innerHTML = `${avatarHtml(sender.name, sender.avatarUrl)}
+    <span class="notify-card__text"><strong>${esc(sender.name)}</strong><span class="notify-card__wrap">wants to stay in touch with you</span></span>
+    <span class="notify-card__actions">
+      <button class="btn btn--primary btn--sm" type="button" data-answer="accept">Accept</button>
+      <button class="btn btn--secondary btn--sm" type="button" data-answer="decline">Decline</button>
+    </span>`;
+  region().prepend(card);
+  const dismiss = setTimeout(() => removeCard(card), 20_000); // still waiting in the Requests list
+  card.addEventListener('click', async (event) => {
+    const button = event.target.closest('[data-answer]');
+    if (!button) return;
+    clearTimeout(dismiss);
+    const accept = button.dataset.answer === 'accept';
+    card.querySelectorAll('button').forEach((b) => { b.disabled = true; });
+    try {
+      await api.respondToConnection(row.id, accept);
+    } catch {
+      card.querySelector('.notify-card__wrap').textContent = 'Couldn’t send your answer. Try again from Requests.';
+      removeCard(card, 5000);
+      return;
+    }
+    announceAnswer(row.requester_id, accept);
+    if (accept) showConnected(card, row.requester_id, sender);
+    else removeCard(card);
+  });
+}
+
+/** The card after accepting: you're connected, with a shortcut to say hi. */
+function showConnected(card, userId, sender) {
+  card.innerHTML = `${avatarHtml(sender.name, sender.avatarUrl)}
+    <span class="notify-card__text"><strong>You’re connected!</strong><span class="notify-card__wrap">You and ${esc(sender.name)} are staying in touch.</span></span>
+    <span class="notify-card__actions"><button class="btn btn--primary btn--sm" type="button" data-message>${icon('chat', 'icon icon--sm')}Message</button></span>`;
+  card.querySelector('[data-message]').addEventListener('click', async (event) => {
+    event.currentTarget.disabled = true;
+    try {
+      const id = await api.startDirectConversation(userId);
+      window.location.href = `chat.html?c=${encodeURIComponent(id)}`;
+    } catch {
+      event.currentTarget.disabled = false;
+    }
+  });
+  removeCard(card, 10_000);
+}
+
+/** Your request was answered: a card for yes, and a gentle one for "not this time". */
+export async function notifyConnectionAnswer(row, myId) {
+  if (!row || row.requester_id !== myId || row.status === 'pending') return;
+  const accepted = row.status === 'accepted';
+  const sender = await senderOf(row.addressee_id);
+  announceAnswer(row.addressee_id, accepted);
+  const prefs = await loadSettings();
+  if (accepted && prefs.sound_enabled) playChime();
+  const card = document.createElement('div');
+  card.className = 'notify-card notify-card--request';
+  if (accepted) {
+    region().prepend(card);
+    showConnected(card, row.addressee_id, sender);
+    card.querySelector('.notify-card__text strong').textContent = `${sender.name} accepted!`;
+    return;
+  }
+  card.innerHTML = `${avatarHtml(sender.name, sender.avatarUrl)}
+    <span class="notify-card__text"><strong>Not this time</strong><span class="notify-card__wrap">${esc(sender.name)} isn’t staying in touch right now. Plenty more people to meet.</span></span>`;
+  region().prepend(card);
+  removeCard(card, 8000);
 }
 
 /* ---------- sound ---------- */

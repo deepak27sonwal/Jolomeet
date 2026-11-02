@@ -1247,3 +1247,22 @@
   .sticker-pop { left: var(--space-2); }
   .quick-start { padding-inline: var(--space-3); }
 }
+
+/* ---------- "Stay in touch" requests in the Requests tab ---------- */
+.chat-request {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+  margin: var(--space-2) var(--space-3);
+  padding: var(--space-3);
+  border: 1px solid rgba(139, 44, 245, 0.2);
+  border-radius: var(--radius-lg);
+  background: linear-gradient(160deg, var(--color-bg) 0%, var(--color-accent-soft) 100%);
+}
+
+.chat-request .avatar-wrap { flex-shrink: 0; }
+.chat-request__body { display: grid; flex: 1 1 120px; min-width: 0; font-size: var(--text-sm); }
+.chat-request__body strong { overflow: hidden; color: var(--color-heading); text-overflow: ellipsis; white-space: nowrap; }
+.chat-request__body span { color: var(--color-text-muted); }
+.chat-request__actions { display: flex; gap: var(--space-2); }
