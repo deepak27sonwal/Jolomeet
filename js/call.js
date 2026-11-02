@@ -9,6 +9,7 @@ import { notifyIncoming, playMatchSound } from './notify.js';
 import { confirmAction, openReportDialog } from './dialogs.js';
 import { askAboutYou } from './quick-start.js';
 import { factsHtml, mountFacts } from './facts.js';
+import { stickerText } from './stickers.js';
 import { questionFor } from './icebreakers.js';
 import { interestPickerHtml, mountInterestPicker, savedInterests } from './interest-picker.js';
 
@@ -500,7 +501,7 @@ function renderCallChat() {
         meta = `<span class="is-failed">Not sent</span> <button class="msg__retry" type="button" data-retry="${esc(m.client_id)}">Retry</button>`;
       }
       return `<li class="call-chat__msg call-chat__msg--${out ? 'out' : 'in'}">
-        <span class="call-chat__bubble">${esc(m.body)}</span>${meta ? `<span class="call-chat__meta">${meta}</span>` : ''}</li>`;
+        <span class="call-chat__bubble">${esc(stickerText(m.body))}</span>${meta ? `<span class="call-chat__meta">${meta}</span>` : ''}</li>`;
     }).join('')
     : '<li class="call-chat__empty">Say hi 👋 Your messages are saved in Chats.</li>';
   chatList.scrollTop = chatList.scrollHeight;
@@ -566,7 +567,8 @@ function onCallMessage(message) {
   }
   c.unread += 1;
   refreshChatButton(c);
-  const preview = message.body.length > 80 ? `${message.body.slice(0, 80)}…` : message.body;
+  const text = stickerText(message.body);
+  const preview = text.length > 80 ? `${text.slice(0, 80)}…` : text;
   toast(`💬 ${c.name}: ${preview}`);
 }
 

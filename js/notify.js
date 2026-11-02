@@ -4,6 +4,7 @@
 // "pop-ups on this device" (this browser only). Works while JoloMeet is open.
 import * as api from './api.js';
 import { icon, esc, avatarHtml } from './ui.js';
+import { parseSticker } from './stickers.js';
 
 const POPUPS_KEY = 'jolomeet:popups';
 const BASE_TITLE = document.title;
@@ -82,6 +83,7 @@ export async function notifyIncoming(message, myId) {
 function previewText(message) {
   if (message.kind === 'image') return '📷 Photo';
   if (message.kind === 'voice') return '🎤 Voice message';
+  if (parseSticker(message.body)) return '🎨 Sticker';
   const body = String(message.body || '').replace(/\s+/g, ' ').trim();
   return body.length > 90 ? `${body.slice(0, 90)}…` : body;
 }

@@ -5,6 +5,7 @@ import { icon, esc, avatarHtml, timeAgo, setLoading, friendlyError, radarHtml } 
 import { confirmAction, chooseAction, openReportDialog } from './dialogs.js';
 import { notifyIncoming, setViewingConversation, playMatchSound } from './notify.js';
 import { factsHtml, mountFacts } from './facts.js';
+import { WAVE, stickerBody, parseSticker, stickerHtml, stickerPanelHtml } from './stickers.js';
 import { askAboutYou } from './quick-start.js';
 import { randomQuestion } from './icebreakers.js';
 import { canRecordVoice, startRecording, voicePlayerHtml, hydrateVoicePlayers, stopVoicePlayback, formatSeconds, MAX_VOICE_SECONDS } from './voice-note.js';
@@ -15,6 +16,9 @@ const PRESENCE_REFRESH_MS = 60_000;
 const MATCH_POLL_MS = 4000;
 const TYPING_SEND_MS = 2500;
 const TYPING_SHOW_MS = 4000;
+const NUDGE_QUIET_MS = 60_000;      // how long the chat must be quiet before we suggest a question
+const NUDGE_STALE_MS = 10 * 60_000; // ...but not for a chat that went quiet long ago
+const NUDGE_GAP_MS = 3 * 60_000;    // after it's closed, leave the person alone for a while
 const CATCH_UP_MS = 8000; // safety net: check for messages the live connection missed
 const PAGE_SIZE = 40;
 const MAX_LENGTH = 2000;
@@ -100,6 +104,7 @@ async function init() {
   });
   window.addEventListener('online', resync);
   setInterval(() => catchUp(), CATCH_UP_MS);
+  setInterval(nudgeTick, 5000);
 
   api.fetchInterests()
     .then((rows) => { state.labels = Object.fromEntries(rows.map((r) => [r.slug, r.label])); })
@@ -306,6 +311,7 @@ function previewText(c) {
   if (c.last_message_kind === 'image') return `${mine}📷 Photo`;
   if (c.last_message_kind === 'voice') return `${mine}🎤 Voice message`;
   if (c.last_message_body == null) return 'Message deleted';
+  if (parseSticker(c.last_message_body)) return `${mine}🎨 Sticker`;
   return mine + c.last_message_body.replace(/\s+/g, ' ');
 }
 
@@ -601,9 +607,23 @@ function renderComposer() {
   }
   if (slot.querySelector('form')) return; // keep the draft
   slot.innerHTML = `
+    <div class="quick-start" id="quick-start" role="group" aria-label="Quick ways to start" hidden>
+      <button class="chip" type="button" data-quick="wave">👋 Wave</button>
+      <button class="chip" type="button" data-quick="hi">😊 Say hi</button>
+      <button class="chip" type="button" data-quick="ask">${icon('dice', 'icon icon--sm')}Icebreaker</button>
+    </div>
+    <div class="nudge" id="nudge" hidden>
+      <p class="nudge__text"><strong>Quiet for a bit?</strong> <span id="nudge-question"></span></p>
+      <div class="nudge__actions">
+        <button class="btn btn--primary btn--sm" type="button" data-nudge="send">Send</button>
+        <button class="btn btn--secondary btn--sm" type="button" data-nudge="another">Another</button>
+        <button class="icon-button" type="button" data-nudge="close" aria-label="Dismiss">${icon('close')}</button>
+      </div>
+    </div>
     <div class="reply-bar" id="reply-bar" hidden></div>
     <form class="chat-composer" id="composer" autocomplete="off">
       <button class="icon-button" type="button" data-action="emoji" aria-label="Add emoji" aria-expanded="false" aria-controls="emoji-pop">${icon('smile')}</button>
+      <button class="icon-button" type="button" data-action="stickers" aria-label="Send a sticker" aria-expanded="false" aria-controls="sticker-pop" title="Stickers">${icon('sticker')}</button>
       <button class="icon-button" type="button" data-action="attach" aria-label="Send a photo">${icon('image')}</button>
       <button class="icon-button" type="button" data-action="icebreaker" aria-label="Add an icebreaker question" title="Icebreaker">${icon('dice')}</button>
       <label class="sr-only" for="chat-input">Message ${esc(a.partner.name)}</label>
@@ -613,6 +633,7 @@ function renderComposer() {
       <div class="emoji-pop" id="emoji-pop" role="group" aria-label="Emoji" hidden>
         ${EMOJI.map((e) => `<button type="button" data-emoji="${e}" aria-label="${e}">${e}</button>`).join('')}
       </div>
+      ${stickerPanelHtml()}
     </form>`;
   const form = slot.querySelector('form');
   const input = form.querySelector('textarea');
@@ -634,6 +655,7 @@ function renderComposer() {
   });
   updateSendButton();
   renderReplyBar();
+  renderQuickStart();
 }
 
 function autosize(input) {
@@ -692,6 +714,8 @@ function renderMessages({ keepOffset = false } = {}) {
 
   if (keepOffset) scroller.scrollTop = prevTop + (scroller.scrollHeight - prevHeight);
   else if (a.stickToBottom) scrollToBottom();
+  renderQuickStart();
+  syncNudge();
 }
 
 function introText(a) {
@@ -714,6 +738,8 @@ function messageHtml(m, isLastOwn) {
   // the list is redrawn when a send is confirmed: carry on the pop where it was
   const popped = m.popAt ? Math.round(performance.now() - m.popAt) : Infinity;
   if (popped < POP_MS) classes.push('msg--pop');
+  const sticker = m.kind === 'text' && !m.deleted_at ? parseSticker(m.body) : null;
+  if (sticker) classes.push('msg--sticker');
   if (m.kind === 'text' && String(m.body).startsWith('🎲 ')) classes.push('msg--icebreaker');
 
   let content;
@@ -728,6 +754,8 @@ function messageHtml(m, isLastOwn) {
     const path = m.attachment_path && !m.localUrl ? ` data-path="${esc(m.attachment_path)}"` : '';
     content = `<a class="msg__image" href="${m.localUrl ? esc(m.localUrl) : '#'}" target="_blank" rel="noopener"${path}>
       <img alt="Photo from ${out ? 'you' : esc(state.active.partner.name)}" loading="lazy"${src}></a>`;
+  } else if (sticker) {
+    content = stickerHtml(sticker);
   } else {
     content = `<div class="msg__bubble">${esc(m.body)}</div>`;
   }
@@ -747,7 +775,7 @@ function messageHtml(m, isLastOwn) {
   const tools = sent ? `<div class="msg__tools">
       ${live ? `<button class="msg__tool" type="button" data-react-pick="${esc(m.id)}" aria-label="React" title="React" aria-expanded="false">${icon('smile')}</button>` : ''}
       ${live ? `<button class="msg__tool" type="button" data-reply="${esc(m.id)}" aria-label="Reply" title="Reply">${icon('reply')}</button>` : ''}
-      ${live && m.kind === 'text' ? `<button class="msg__tool" type="button" data-copy="${esc(m.id)}" aria-label="Copy text" title="Copy">${icon('copy')}</button>` : ''}
+      ${live && m.kind === 'text' && !sticker ? `<button class="msg__tool" type="button" data-copy="${esc(m.id)}" aria-label="Copy text" title="Copy">${icon('copy')}</button>` : ''}
       ${canEdit(m) ? `<button class="msg__tool" type="button" data-edit="${esc(m.id)}" aria-label="Edit message" title="Edit (for 5 minutes)">${icon('edit')}</button>` : ''}
       <button class="msg__tool msg__tool--danger" type="button" data-delete="${esc(m.id)}" aria-label="Delete message" title="Delete">${icon('trash')}</button>
     </div>` : '';
@@ -762,6 +790,7 @@ function messageSnippet(m) {
   if (m.deleted_at) return 'Message deleted';
   if (m.kind === 'image') return '📷 Photo';
   if (m.kind === 'voice') return '🎤 Voice message';
+  if (parseSticker(m.body)) return '🎨 Sticker';
   const text = String(m.body || '').replace(/\s+/g, ' ').trim();
   return text.length > 90 ? `${text.slice(0, 90)}…` : text;
 }
@@ -1286,6 +1315,26 @@ function bindMain() {
       insertEmoji(emoji.dataset.emoji);
       return;
     }
+    const quick = event.target.closest('[data-quick]');
+    if (quick) {
+      quickStart(quick.dataset.quick);
+      return;
+    }
+    const nudge = event.target.closest('[data-nudge]');
+    if (nudge) {
+      onNudge(nudge.dataset.nudge);
+      return;
+    }
+    const sticker = event.target.closest('[data-sticker]');
+    if (sticker) {
+      sendSticker(sticker.dataset.sticker);
+      return;
+    }
+    const stickerTab = event.target.closest('[data-sticker-tab]');
+    if (stickerTab) {
+      showStickerPack(stickerTab.dataset.stickerTab);
+      return;
+    }
     const reply = event.target.closest('[data-reply]');
     if (reply) {
       startReply(reply.dataset.reply);
@@ -1344,6 +1393,7 @@ function bindMain() {
       older: loadOlder,
       jump: scrollToBottom,
       emoji: () => toggleEmoji(),
+      stickers: () => toggleStickers(),
       background: () => toggleBackgroundPicker(),
       'close-bg': () => toggleBackgroundPicker(false),
       'cancel-reply': () => cancelReply(),
@@ -1368,6 +1418,8 @@ function bindMain() {
   document.addEventListener('click', (event) => {
     const pop = document.getElementById('emoji-pop');
     if (pop && !pop.hidden && !event.target.closest('#emoji-pop, [data-action="emoji"]')) toggleEmoji(false);
+    const stickers = document.getElementById('sticker-pop');
+    if (stickers && !stickers.hidden && !event.target.closest('#sticker-pop, [data-action="stickers"]')) toggleStickers(false);
     const picker = document.getElementById('bg-picker');
     if (picker && !picker.hidden && !event.target.closest('#bg-picker, [data-action="background"]')) toggleBackgroundPicker(false);
     if (!event.target.closest('.msg--tools-open')) closeMessageTools();
@@ -1386,8 +1438,12 @@ function bindMain() {
   document.addEventListener('keydown', (event) => {
     if (event.key !== 'Escape') return;
     const pop = document.getElementById('emoji-pop');
+    const stickers = document.getElementById('sticker-pop');
     const picker = document.getElementById('bg-picker');
-    if (pop && !pop.hidden) {
+    if (stickers && !stickers.hidden) {
+      toggleStickers(false);
+      document.querySelector('[data-action="stickers"]')?.focus();
+    } else if (pop && !pop.hidden) {
       toggleEmoji(false);
       document.querySelector('[data-action="emoji"]')?.focus();
     } else if (picker && !picker.hidden) {
@@ -1418,9 +1474,115 @@ function toggleEmoji(force) {
   const button = document.querySelector('[data-action="emoji"]');
   if (!pop) return;
   const open = force ?? pop.hidden;
+  if (open) toggleStickers(false);
   pop.hidden = !open;
   button?.setAttribute('aria-expanded', String(open));
   if (open) pop.querySelector('button')?.focus();
+}
+
+/* ---------- stickers ---------- */
+
+function toggleStickers(force) {
+  const pop = document.getElementById('sticker-pop');
+  const button = document.querySelector('[data-action="stickers"]');
+  if (!pop) return;
+  const open = force ?? pop.hidden;
+  if (open) toggleEmoji(false);
+  pop.hidden = !open;
+  button?.setAttribute('aria-expanded', String(open));
+  if (open) pop.querySelector('[data-sticker]:not([hidden])')?.focus();
+}
+
+function showStickerPack(id) {
+  document.querySelectorAll('[data-sticker-tab]').forEach((tab) => tab.setAttribute('aria-selected', String(tab.dataset.stickerTab === id)));
+  document.querySelectorAll('[data-sticker-pack]').forEach((pack) => { pack.hidden = pack.dataset.stickerPack !== id; });
+}
+
+/* ---------- quick start and the "quiet for a bit" nudge ---------- */
+
+/** Wave / say hi / icebreaker chips, until you've sent something in this chat. */
+function renderQuickStart() {
+  const a = state.active;
+  const el = document.getElementById('quick-start');
+  if (!a || !el) return;
+  const spoken = a.messages.some((m) => m.sender_id === state.me.id && m.kind !== 'system' && !m.deleted_at);
+  el.hidden = spoken;
+}
+
+function quickStart(kind) {
+  const a = state.active;
+  if (!a || !canSend()) return;
+  if (kind === 'ask') {
+    addIcebreaker();
+    return;
+  }
+  a.lastTypingSent = 0;
+  deliver({
+    client_id: crypto.randomUUID(),
+    kind: 'text',
+    body: kind === 'wave' ? stickerBody(WAVE) : 'Hi! 😊',
+    reply_to_id: null,
+  });
+}
+
+/** After a minute of quiet in a chat that was just active, suggest a question to ask. */
+function nudgeTick() {
+  const a = state.active;
+  const el = document.getElementById('nudge');
+  if (!a || !el || !el.hidden || !document.getElementById('composer')) return;
+  if (document.visibilityState !== 'visible' || Date.now() < a.typingUntil) return;
+  const input = document.getElementById('chat-input');
+  if (input?.value.trim() || a.replyTo || a.editing) return;
+  if (a.nudgeClosedAt && Date.now() - a.nudgeClosedAt < NUDGE_GAP_MS) return;
+  const last = a.messages.filter((m) => m.kind !== 'system' && !m.deleted_at).at(-1);
+  if (!last || !last.id || last.status === 'sending' || last.status === 'failed') return;
+  const quiet = Date.now() - new Date(last.created_at);
+  if (quiet < NUDGE_QUIET_MS || quiet > NUDGE_STALE_MS) return;
+  a.nudgeAfter = last.id;
+  pickNudgeQuestion();
+  el.hidden = false;
+}
+
+function pickNudgeQuestion() {
+  const question = randomQuestion();
+  state.active.nudgeQuestion = question;
+  const target = document.getElementById('nudge-question');
+  if (target) target.textContent = question;
+}
+
+/** Any new message ends the quiet: take the suggestion away. */
+function syncNudge() {
+  const a = state.active;
+  const el = document.getElementById('nudge');
+  if (!a || !el || el.hidden) return;
+  const last = a.messages.filter((m) => m.kind !== 'system' && !m.deleted_at).at(-1);
+  if (!last || last.id !== a.nudgeAfter) el.hidden = true;
+}
+
+function onNudge(action) {
+  const a = state.active;
+  const el = document.getElementById('nudge');
+  if (!a || !el) return;
+  if (action === 'another') {
+    pickNudgeQuestion();
+    return;
+  }
+  el.hidden = true;
+  if (action === 'close') {
+    a.nudgeClosedAt = Date.now();
+    return;
+  }
+  if (action === 'send' && canSend()) {
+    a.lastTypingSent = 0;
+    deliver({ client_id: crypto.randomUUID(), kind: 'text', body: `🎲 ${a.nudgeQuestion}`, reply_to_id: null });
+  }
+}
+
+function sendSticker(id) {
+  if (!state.active || !canSend()) return;
+  toggleStickers(false);
+  if (state.active) state.active.lastTypingSent = 0;
+  deliver({ client_id: crypto.randomUUID(), kind: 'text', body: stickerBody(id), reply_to_id: takeReply() });
 }
 
 /* ---------- reactions ---------- */
@@ -1601,7 +1763,7 @@ async function deleteForEveryone(a, message) {
 /* editing: your own text messages, for 5 minutes after sending */
 
 function canEdit(m) {
-  return m.sender_id === state.me.id && m.kind === 'text' && m.id && !m.deleted_at
+  return m.sender_id === state.me.id && m.kind === 'text' && !parseSticker(m.body) && m.id && !m.deleted_at
     && !m.status?.match(/sending|failed/) && Date.now() - new Date(m.created_at) < EDIT_WINDOW_MS;
 }
 
